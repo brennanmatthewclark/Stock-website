@@ -330,6 +330,10 @@ def safe(fn, default):
 def fetch_one(ticker: str, yf) -> dict:
     t = yf.Ticker(ticker)
     info = t.info or {}
+    # Yahoo sometimes throttles the company-info call and returns an almost empty answer. Treat that as a
+    # failure (so it is retried, and yesterday's good data is kept) instead of publishing blanks.
+    if not (txt(info.get("longName")) or txt(info.get("shortName"))) and num(info.get("marketCap")) is None:
+        raise RuntimeError("Yahoo returned incomplete company info (probably rate limited)")
     price = num(info.get("currentPrice") or info.get("regularMarketPrice"), 2)
     if price is None:
         price = safe(lambda: num(t.fast_info["last_price"], 2), None)

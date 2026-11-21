@@ -46,9 +46,17 @@
             <p id="last-updated" class="text-xs text-slate-500 mt-0.5">Loading…</p>
           </div>
         </div>
+        <div class="flex items-center gap-2">
+        <button type="button" id="btn-add-stock" class="px-2.5 py-1.5 text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 rounded-lg flex items-center gap-1" title="Add a stock to your watchlist">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i><span>Add Stock</span>
+        </button>
+        <button type="button" id="btn-settings" class="p-1.5 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg" title="Connect GitHub (needed to add or remove stocks)" aria-label="Connect GitHub">
+          <i data-lucide="key-round" class="w-3.5 h-3.5"></i>
+        </button>
         <div id="view-mode-toggle" class="inline-flex rounded-lg bg-slate-100 p-0.5 text-xs font-medium">
           <button type="button" id="view-cards-btn" class="px-2.5 py-1 rounded-md bg-white text-slate-900 shadow-sm">Cards</button>
           <button type="button" id="view-table-btn" class="px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900">Table</button>
+        </div>
         </div>
       </div>
     </div>
@@ -56,6 +64,7 @@
 
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
     <div id="banner" class="hidden"></div>
+    <div id="pending-banner" class="hidden"></div>
     <div id="summary-kpis" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
     <section id="cards-section" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"></section>
 
@@ -204,6 +213,57 @@
     </div>
   </div>
 
+  <!-- Add stock -->
+  <div id="modal-add" class="overlay hidden fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="add-title">
+    <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 id="add-title" class="text-lg font-bold text-slate-900">Add a stock</h3>
+        <button type="button" data-close-overlay class="text-slate-400 hover:text-slate-600" aria-label="Close"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <p class="text-xs text-slate-500">Type a ticker symbol (for example AMD, NFLX or BRK-B). It is saved to your watchlist and the data is fetched automatically; the stock appears in about 2-3 minutes.</p>
+      <form id="form-add" class="space-y-3">
+        <input type="text" id="add-ticker" required maxlength="12" autocomplete="off" autocapitalize="characters" placeholder="e.g. AMD" class="w-full px-3 py-2 text-sm font-semibold border border-slate-300 rounded-lg uppercase tracking-wide" />
+        <p id="add-status" class="text-xs text-slate-500 min-h-[1rem]"></p>
+        <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="button" data-close-overlay class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+          <button type="submit" id="btn-add-submit" class="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg">Add stock</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Connect GitHub -->
+  <div id="modal-settings" class="overlay hidden fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <h3 id="settings-title" class="text-lg font-bold text-slate-900">Connect GitHub</h3>
+        <button type="button" data-close-overlay class="text-slate-400 hover:text-slate-600" aria-label="Close"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-600 space-y-1">
+        <p class="font-semibold text-slate-800">One-time setup (so this page can edit your watchlist):</p>
+        <p>1. Open <a class="text-brand-600 underline" target="_blank" rel="noopener noreferrer" href="https://github.com/settings/personal-access-tokens/new">GitHub &gt; Fine-grained token</a>.</p>
+        <p>2. Name it "stock dashboard". Set an expiration date. Under <strong>Repository access</strong> choose <strong>Only select repositories</strong> and pick this repository.</p>
+        <p>3. Under <strong>Repository permissions</strong> set <strong>Contents</strong> to <strong>Read and write</strong>. Leave everything else alone, then tap Generate token.</p>
+        <p>4. Copy the token and paste it below. It is saved only in this browser on this device. Never share it.</p>
+      </div>
+      <form id="form-settings" class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1" for="set-token">GitHub token</label>
+          <input type="password" id="set-token" autocomplete="off" placeholder="github_pat_..." class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg font-mono" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-xs font-medium text-slate-600 mb-1" for="set-owner">GitHub username</label><input type="text" id="set-owner" autocomplete="off" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg" /></div>
+          <div><label class="block text-xs font-medium text-slate-600 mb-1" for="set-repo">Repository name</label><input type="text" id="set-repo" autocomplete="off" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg" /></div>
+        </div>
+        <p id="settings-status" class="text-xs text-slate-500 min-h-[1rem]"></p>
+        <div class="flex justify-between items-center pt-2 border-t border-slate-100">
+          <button type="button" id="btn-settings-clear" class="px-3 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 rounded-lg">Forget token</button>
+          <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg">Save &amp; test</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
     // ============================ constants & helpers ============================
     const C = { blue: '#2a78d6', orange: '#eb6834', aqua: '#1baf7a', grid: '#e1e0d9', axis: '#c3c2b7', ink2: '#52514e', muted: '#898781' };
@@ -264,21 +324,23 @@
     }
 
     // ============================ data loading ============================
-    async function loadData() {
+    async function loadData(silent = false) {
       try {
-        const res = await fetch('data/stocks.json', { cache: 'no-cache' });
+        const res = await fetch('data/stocks.json?t=' + Date.now(), { cache: 'no-cache' });
         if (!res.ok) throw new Error(`data/stocks.json returned ${res.status}`);
         const payload = await res.json();
         stocks = Array.isArray(payload.stocks) ? payload.stocks : [];
         meta = payload;
         try {
-          const h = await fetch('data/pe_history.json', { cache: 'no-cache' });
+          const h = await fetch('data/pe_history.json?t=' + Date.now(), { cache: 'no-cache' });
           history = h.ok ? await h.json() : {};
         } catch (e) { history = {}; }
         if (!stocks.length) throw new Error('stocks.json has no stocks');
         showBanner();
         renderAll();
+        reconcilePending();
       } catch (err) {
+        if (silent) return;
         $('last-updated').textContent = 'No data loaded';
         $('summary-kpis').innerHTML = '';
         $('charts-section').classList.add('hidden');
@@ -296,7 +358,7 @@
       const parts = [];
       if (meta.demo) parts.push(['bg-amber-50 border-amber-200 text-amber-900', 'DEMO DATA — these numbers are randomly generated and not real.']);
       if (gen && (Date.now() - gen.getTime()) > 3 * 864e5) parts.push(['bg-amber-50 border-amber-200 text-amber-900', `Data is ${Math.round((Date.now() - gen.getTime()) / 864e5)} days old — check that the daily pipeline is still running.`]);
-      const failed = Object.keys(meta.errors || {});
+      const failed = Object.keys(meta.errors || {}).filter(t => stocks.some(s => s.ticker === t));
       if (failed.length) parts.push(['bg-slate-50 border-slate-200 text-slate-700', `Refresh failed for: ${failed.join(', ')}. Showing the last good data where available.`]);
       const b = $('banner');
       b.className = parts.length ? 'space-y-2' : 'hidden';
@@ -403,9 +465,14 @@
               <a href="https://www.google.com/finance/quote/${encodeURIComponent(s.financeSlug || s.ticker + ':NASDAQ')}" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-700 font-medium">Google Finance</a>
               <a href="https://stockanalysis.com/stocks/${encodeURIComponent(s.saSlug || s.ticker.toLowerCase())}/forecast/" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-700 font-medium">Estimates</a>
             </div>
-            <button type="button" data-analyze-ticker="${esc(s.ticker)}" class="px-2.5 py-1 rounded-md text-brand-700 bg-brand-50 hover:bg-brand-100 font-medium flex items-center gap-1">
-              <i data-lucide="calculator" class="w-3.5 h-3.5"></i><span>Analyze</span>
-            </button>
+            <div class="flex items-center gap-1">
+              <button type="button" data-analyze-ticker="${esc(s.ticker)}" class="px-2.5 py-1 rounded-md text-brand-700 bg-brand-50 hover:bg-brand-100 font-medium flex items-center gap-1">
+                <i data-lucide="calculator" class="w-3.5 h-3.5"></i><span>Analyze</span>
+              </button>
+              <button type="button" data-remove-ticker="${esc(s.ticker)}" class="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50" title="Remove ${esc(s.ticker)} from watchlist" aria-label="Remove ${esc(s.ticker)}">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
           </div>
         </div>`;
       }).join('');
@@ -511,13 +578,15 @@
     });
 
     document.addEventListener('click', (e) => {
+      const rm = e.target.closest('[data-remove-ticker]');
+      if (rm) { onRemoveClick(rm.dataset.removeTicker); return; }
       const btn = e.target.closest('[data-analyze-ticker]');
       if (btn) { openModal(btn.dataset.analyzeTicker); return; }
       const card = e.target.closest('[data-card-ticker]');
       if (card && !e.target.closest('a, button')) openModal(card.dataset.cardTicker);
     });
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeModal();
+      if (e.key === 'Escape') { closeModal(); closeOverlays(); }
       if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-card-ticker]')) { e.preventDefault(); openModal(e.target.dataset.cardTicker); }
     });
 
@@ -831,6 +900,156 @@
 
     ['pe-current-price', 'pe-current-eps', 'pe-horizon', 'pe-eps-growth', 'pe-bear', 'pe-base', 'pe-bull', 'pe-discount-rate']
       .forEach(id => $(id).addEventListener('input', renderPeForecast));
+
+    // ============================ add / remove stocks from this page ============================
+    // The page edits tickers.txt in your GitHub repository through the GitHub API. That commit starts the
+    // workflow, which runs fetch_data.py and republishes the site. Nothing runs on a server of ours.
+    const GH_KEY = 'stockdash_github_v1', PENDING_KEY = 'stockdash_pending_v1';
+    const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
+    const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* ignore */ } };
+    const tickerOf = (line) => line.split('#')[0].trim().toUpperCase();
+    const fromB64 = (b) => new TextDecoder().decode(Uint8Array.from(atob(b.replace(/\s/g, '')), c => c.charCodeAt(0)));
+    const toB64 = (str) => { let bin = ''; new TextEncoder().encode(str).forEach(b => { bin += String.fromCharCode(b); }); return btoa(bin); };
+
+    function ghConfig() {
+      const saved = lsGet(GH_KEY, {});
+      const onPages = location.hostname.endsWith('.github.io');
+      return {
+        token: saved.token || '',
+        owner: saved.owner || (onPages ? location.hostname.split('.')[0] : ''),
+        repo: saved.repo || (onPages ? (location.pathname.split('/')[1] || '') : '')
+      };
+    }
+    const ghHeaders = (token) => ({ Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' });
+    const ghError = (status) => status === 401 ? 'GitHub rejected the token (expired or mistyped). Create a new one and paste it again.'
+      : (status === 403 || status === 404) ? 'This token cannot edit that repository. Check the username and repository name, and that the token has "Contents: Read and write" on it.'
+      : `GitHub error (${status}). Please try again in a minute.`;
+
+    async function updateTickers(mutator, message) {
+      const { token, owner, repo } = ghConfig();
+      if (!token || !owner || !repo) throw new Error('Connect GitHub first: tap the key icon at the top.');
+      const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/tickers.txt`;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const g = await fetch(url, { headers: ghHeaders(token), cache: 'no-store' });
+        if (!g.ok) throw new Error(ghError(g.status));
+        const file = await g.json();
+        const next = mutator(fromB64(file.content));
+        if (next === null) return 'nochange';
+        const put = await fetch(url, { method: 'PUT', headers: { ...ghHeaders(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ message, content: toB64(next), sha: file.sha }) });
+        if (put.ok) return 'ok';
+        if (put.status === 409 || put.status === 422) continue;   // file changed under us: re-read and retry
+        throw new Error(ghError(put.status));
+      }
+      throw new Error('The watchlist changed while saving. Please try again.');
+    }
+
+    async function addTicker(raw) {
+      const T = raw.trim().toUpperCase();
+      if (!/^[A-Z0-9][A-Z0-9.\-=^]{0,11}$/.test(T)) throw new Error('That does not look like a ticker symbol. Use letters and numbers, like AMD or BRK-B.');
+      if (stocks.some(s => s.ticker === T)) throw new Error(`${T} is already on your dashboard.`);
+      await updateTickers(text => text.split('\n').map(tickerOf).includes(T) ? null : text.replace(/\s*$/, '') + '\n' + T + '\n', `Add ${T}`);
+      lsSet(PENDING_KEY, { ...lsGet(PENDING_KEY, {}), [T]: Date.now() });
+      startPolling();
+      return T;
+    }
+
+    async function removeTicker(T) {
+      await updateTickers(text => {
+        const lines = text.split('\n');
+        const kept = lines.filter(l => tickerOf(l) !== T);
+        return kept.length === lines.length ? null : kept.join('\n');
+      }, `Remove ${T}`);
+    }
+
+    async function onRemoveClick(T) {
+      if (!confirm(`Remove ${T} from your dashboard?`)) return;
+      try {
+        await removeTicker(T);
+        stocks = stocks.filter(s => s.ticker !== T);
+        if (meta.errors) delete meta.errors[T];
+        const p = lsGet(PENDING_KEY, {}); delete p[T]; lsSet(PENDING_KEY, p);
+        if (!stocks.length) { location.reload(); return; }
+        renderAll(); renderPending();
+      } catch (err) { alert(err.message); }
+    }
+
+    // --- "waiting for data" / "no data found" banner and polling
+    function renderPending() {
+      const waiting = Object.keys(lsGet(PENDING_KEY, {}));
+      const failed = Object.keys(meta.errors || {}).filter(t => !stocks.some(s => s.ticker === t));
+      const rows = [];
+      if (waiting.length) rows.push(`<div class="border rounded-lg px-3 py-2 text-xs font-medium bg-blue-50 border-blue-200 text-blue-900">Adding ${waiting.map(esc).join(', ')}. This page updates by itself in about 2-3 minutes.</div>`);
+      failed.forEach(t => rows.push(`<div class="border rounded-lg px-3 py-2 text-xs font-medium bg-amber-50 border-amber-200 text-amber-900 flex items-center justify-between gap-3"><span>No data found for <strong>${esc(t)}</strong>. Check the symbol.</span><button type="button" data-remove-ticker="${esc(t)}" class="underline font-semibold whitespace-nowrap">Remove it</button></div>`));
+      const el = $('pending-banner');
+      el.className = rows.length ? 'space-y-2' : 'hidden';
+      el.innerHTML = rows.join('');
+    }
+
+    function reconcilePending() {
+      const p = lsGet(PENDING_KEY, {});
+      for (const [t, ts] of Object.entries(p)) {
+        const arrived = stocks.some(s => s.ticker === t && !s.stale);
+        const failed = !!(meta.errors && meta.errors[t]);
+        if (arrived || failed || Date.now() - ts > 15 * 60 * 1000) delete p[t];
+      }
+      lsSet(PENDING_KEY, p);
+      renderPending();
+      if (Object.keys(p).length) startPolling();
+    }
+
+    let pollTimer = null;
+    function startPolling() {
+      if (pollTimer) return;
+      pollTimer = setInterval(() => {
+        if (!Object.keys(lsGet(PENDING_KEY, {})).length) { clearInterval(pollTimer); pollTimer = null; return; }
+        loadData(true);
+      }, 20000);
+    }
+
+    // --- dialogs
+    function closeOverlays() { document.querySelectorAll('.overlay').forEach(o => o.classList.add('hidden')); }
+    document.querySelectorAll('.overlay').forEach(o => o.addEventListener('click', (e) => { if (e.target === o || e.target.closest('[data-close-overlay]')) o.classList.add('hidden'); }));
+    const setStatus = (id, msg, bad) => { const el = $(id); el.textContent = msg; el.className = 'text-xs min-h-[1rem] ' + (bad ? 'text-rose-700' : 'text-slate-500'); };
+
+    function openSettings() {
+      const c = ghConfig();
+      $('set-token').value = c.token; $('set-owner').value = c.owner; $('set-repo').value = c.repo;
+      setStatus('settings-status', c.token ? 'A token is saved on this device.' : '');
+      $('modal-settings').classList.remove('hidden');
+    }
+    $('btn-settings').addEventListener('click', openSettings);
+    $('btn-add-stock').addEventListener('click', () => {
+      if (!ghConfig().token) { openSettings(); setStatus('settings-status', 'Connect GitHub first, then you can add stocks.'); return; }
+      $('add-ticker').value = ''; setStatus('add-status', '');
+      $('modal-add').classList.remove('hidden');
+      setTimeout(() => $('add-ticker').focus(), 50);
+    });
+
+    $('form-settings').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const cfg = { token: $('set-token').value.trim(), owner: $('set-owner').value.trim(), repo: $('set-repo').value.trim() };
+      if (!cfg.token || !cfg.owner || !cfg.repo) { setStatus('settings-status', 'Fill in all three boxes.', true); return; }
+      setStatus('settings-status', 'Testing…');
+      try {
+        const r = await fetch(`https://api.github.com/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/contents/tickers.txt`, { headers: ghHeaders(cfg.token), cache: 'no-store' });
+        if (!r.ok) throw new Error(ghError(r.status));
+        lsSet(GH_KEY, cfg);
+        setStatus('settings-status', 'Connected. You can now add and remove stocks.');
+        setTimeout(() => $('modal-settings').classList.add('hidden'), 900);
+      } catch (err) { setStatus('settings-status', err.message, true); }
+    });
+    $('btn-settings-clear').addEventListener('click', () => { try { localStorage.removeItem(GH_KEY); } catch (e) { /* ignore */ } $('set-token').value = ''; setStatus('settings-status', 'Token forgotten on this device.'); });
+
+    $('form-add').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = $('btn-add-submit'); btn.disabled = true; setStatus('add-status', 'Saving…');
+      try {
+        await addTicker($('add-ticker').value);
+        $('modal-add').classList.add('hidden');
+        renderPending();
+      } catch (err) { setStatus('add-status', err.message, true); }
+      finally { btn.disabled = false; }
+    });
 
     // ============================ start ============================
     window.addEventListener('DOMContentLoaded', () => {

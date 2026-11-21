@@ -219,9 +219,11 @@
         </div>
         <div class="flex gap-1 mt-3 overflow-x-auto custom-scrollbar" role="tablist" id="tab-bar">
           <button type="button" class="tab-btn" role="tab" data-tab="valuation" aria-selected="true">P/E Forecast</button>
+          <button type="button" class="tab-btn" role="tab" data-tab="price" aria-selected="false">Price</button>
           <button type="button" class="tab-btn" role="tab" data-tab="financials" aria-selected="false">Financials</button>
           <button type="button" class="tab-btn" role="tab" data-tab="estimates" aria-selected="false">Estimates</button>
           <button type="button" class="tab-btn" role="tab" data-tab="analysts" aria-selected="false">Analysts</button>
+          <button type="button" class="tab-btn" role="tab" data-tab="news" aria-selected="false">News</button>
           <button type="button" class="tab-btn" role="tab" data-tab="history" aria-selected="false">P/E History</button>
         </div>
       </div>
@@ -303,9 +305,11 @@
           </div>
         </div>
 
+        <div id="tab-price" class="hidden space-y-4"></div>
         <div id="tab-financials" class="hidden space-y-5"></div>
         <div id="tab-estimates" class="hidden space-y-5"></div>
         <div id="tab-analysts" class="hidden space-y-5"></div>
+        <div id="tab-news" class="hidden space-y-4"></div>
         <div id="tab-history" class="hidden space-y-5"></div>
       </div>
     </div>
@@ -523,7 +527,7 @@
           <span class="px-2 py-0.5 text-[11px] font-medium rounded-full ${st.badge}">${st.label}</span>
         </div>
         <p class="text-xs font-medium text-slate-800 mt-1 tabular-nums">${fmtX(s.pe)} now vs ${h.typical.toFixed(1)}x typical <span class="text-slate-500">(${Math.abs(h.diff).toFixed(0)}% ${dir})</span></p>
-        <p class="text-[11px] text-slate-500 mt-0.5 tabular-nums">Range ${h.low.toFixed(1)}x–${h.high.toFixed(1)}x • ${h.days} days since ${fmtDate(h.since)}</p>
+        <p class="text-[11px] text-slate-500 mt-0.5 tabular-nums">Range ${h.low.toFixed(1)}x–${h.high.toFixed(1)}x • ${h.days} readings since ${fmtDate(h.since)}</p>
       </div>`;
     }
 
@@ -686,7 +690,7 @@
           <td class="py-3 px-4 text-right tabular-nums ${isNum(up) ? (up >= 0 ? 'text-emerald-700' : 'text-rose-700') : ''}">${fmtPct(up, 1)}</td>
           <td class="py-3 px-4">${ratingBadge(s.analyst?.rating)}</td>
           <td class="py-3 px-4">${hh.ready
-            ? `<span class="px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap ${HIST_STYLE[hh.verdict].badge}" title="${hh.typical.toFixed(1)}x typical over ${hh.days} days">${HIST_STYLE[hh.verdict].label}</span><div class="text-xs text-slate-500 mt-0.5 tabular-nums">${Math.abs(hh.diff).toFixed(0)}% ${hh.diff >= 0 ? 'above' : 'below'} typical</div>`
+            ? `<span class="px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap ${HIST_STYLE[hh.verdict].badge}" title="${hh.typical.toFixed(1)}x typical over ${hh.days} readings">${HIST_STYLE[hh.verdict].label}</span><div class="text-xs text-slate-500 mt-0.5 tabular-nums">${Math.abs(hh.diff).toFixed(0)}% ${hh.diff >= 0 ? 'above' : 'below'} typical</div>`
             : `<span class="text-xs text-slate-500" title="Needs ${MIN_HIST_DAYS} daily snapshots">Building (${hh.days}/${MIN_HIST_DAYS})</span>`}</td>
           <td class="py-3 px-4"><div class="flex items-center gap-1.5 flex-wrap"><span class="text-xs font-semibold text-slate-700">${fmtDate(s.nextEarnings?.date)}</span><span class="px-1.5 py-0.5 text-[10px] font-medium rounded-full whitespace-nowrap ${et.cls}">${et.text}</span></div><div class="text-xs text-slate-500 mt-0.5">${earningsLine(s)}</div></td>
         </tr>`;
@@ -825,9 +829,9 @@
     function showTab(name) {
       activeTab = name;
       document.querySelectorAll('.tab-btn').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
-      ['valuation', 'financials', 'estimates', 'analysts', 'history'].forEach(t => $('tab-' + t).classList.toggle('hidden', t !== name));
+      ['valuation', 'price', 'financials', 'estimates', 'analysts', 'news', 'history'].forEach(t => $('tab-' + t).classList.toggle('hidden', t !== name));
       if (!selected) return;
-      ({ valuation: renderPeForecast, financials: renderFinancials, estimates: renderEstimates, analysts: renderAnalysts, history: renderHistory })[name]();
+      ({ valuation: renderPeForecast, price: renderPrice, financials: renderFinancials, estimates: renderEstimates, analysts: renderAnalysts, news: renderNews, history: renderHistory })[name]();
     }
 
     // ---------------- Financials ----------------
@@ -968,6 +972,86 @@
           <a class="text-brand-600 underline" target="_blank" rel="noopener noreferrer" href="https://stockanalysis.com/stocks/${encodeURIComponent(s.saSlug || s.ticker.toLowerCase())}/forecast/">StockAnalysis forecast</a>.</p>`;
     }
 
+    // ---------------- Price chart ----------------
+    let priceRange = '1Y';
+    const PRICE_RANGES = { '1M': 21, '3M': 63, '6M': 126, '1Y': 400 };   // number of trading days
+    function renderPrice() {
+      const s = selected, el = $('tab-price'), ph = s.priceHistory;
+      killChart('price');
+      if (!ph || !Array.isArray(ph.close) || ph.close.length < 5) {
+        el.innerHTML = `<div class="bg-slate-50 border border-slate-200 rounded-xl p-5 text-sm text-slate-600">
+          <p class="font-semibold text-slate-800">No price history saved for ${esc(s.ticker)} yet.</p>
+          <p class="mt-1">It is added by the next daily update.</p></div>`;
+        return;
+      }
+      const n = Math.min(PRICE_RANGES[priceRange] || 400, ph.close.length);
+      const dates = ph.dates.slice(-n), close = ph.close.slice(-n);
+      const chg = (close[n - 1] / close[0] - 1) * 100, hi = Math.max(...close), lo = Math.min(...close);
+      const long = n > 70;
+      const short = (iso) => new Date(iso + 'T00:00:00').toLocaleDateString('en-US', long ? { month: 'short', year: '2-digit' } : { month: 'short', day: 'numeric' });
+      el.innerHTML = `
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h4 class="text-sm font-semibold text-slate-900">Share price</h4>
+            <p class="text-xs text-slate-500">Daily closing price, ${fmtDate(dates[0])} to ${fmtDate(dates[n - 1])}</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-sm font-semibold tabular-nums ${chg >= 0 ? 'text-emerald-700' : 'text-rose-700'}" title="Change over this range">${fmtPct(chg, 1)}</span>
+            <div class="inline-flex rounded-lg bg-slate-100 p-0.5 text-xs font-medium">
+              ${Object.keys(PRICE_RANGES).map(k => `<button type="button" data-range="${k}" class="px-2.5 py-1 rounded-md ${k === priceRange ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}">${k}</button>`).join('')}
+            </div>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-4"><div class="relative h-72"><canvas id="chart-price"></canvas></div></div>
+        <p class="text-xs text-slate-500 tabular-nums">In this range: low ${fmtUSD(lo)} • high ${fmtUSD(hi)}</p>`;
+      charts.price = new Chart($('chart-price'), {
+        type: 'line',
+        data: { labels: dates, datasets: [{ label: 'Close', data: close, borderColor: C.primary, backgroundColor: C.primary + '22', fill: true, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: 0.15 }] },
+        options: baseOptions({
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmtUSD(ctx.raw) } } },
+          scales: {
+            x: { grid: { display: false }, border: { color: C.axis }, ticks: { maxTicksLimit: 7, maxRotation: 0, callback: function (v) { return short(this.getLabelForValue(v)); } } },
+            y: { grid: { color: C.grid }, border: { display: false }, ticks: { callback: v => '$' + v } }
+          }
+        })
+      });
+    }
+    $('tab-price').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-range]');
+      if (b) { priceRange = b.dataset.range; renderPrice(); }
+    });
+
+    // ---------------- News ----------------
+    function timeAgo(iso) {
+      const d = daysUntil(iso);
+      if (d == null) return '';
+      const ago = -d;
+      return ago <= 0 ? 'today' : ago === 1 ? 'yesterday' : ago < 30 ? `${ago} days ago` : fmtDate(iso);
+    }
+    function renderNews() {
+      const s = selected, el = $('tab-news'), items = Array.isArray(s.news) ? s.news : [];
+      if (!items.length) {
+        el.innerHTML = `<div class="bg-slate-50 border border-slate-200 rounded-xl p-5 text-sm text-slate-600">
+          <p class="font-semibold text-slate-800">No headlines saved for ${esc(s.ticker)} yet.</p>
+          <p class="mt-1">They are added by the daily update. You can also search for the newest YouTube videos from the Videos button on the card.</p></div>`;
+        return;
+      }
+      el.innerHTML = `
+        <div>
+          <h4 class="text-sm font-semibold text-slate-900">Recent headlines</h4>
+          <p class="text-xs text-slate-500">Links open the original article in a new tab. Updated once a day.</p>
+        </div>
+        <ul class="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
+          ${items.map(n => {
+            const ok = /^https?:\/\//i.test(n.url || '');
+            const meta = [esc(n.publisher), timeAgo(n.date)].filter(Boolean).join(' • ');
+            return `<li class="p-3.5">
+              <a ${ok ? `href="${esc(n.url)}" target="_blank" rel="noopener noreferrer"` : ''} class="text-sm font-medium text-slate-900 hover:text-brand-700">${esc(n.title)}</a>
+              ${meta ? `<p class="text-xs text-slate-500 mt-0.5">${meta}</p>` : ''}</li>`;
+          }).join('')}
+        </ul>`;
+    }
+
     // ---------------- P/E history ----------------
     function renderHistory() {
       const s = selected, rows = history[s.ticker] || [];
@@ -982,7 +1066,7 @@
       }
       el.innerHTML = `<div>
           <h4 class="text-sm font-semibold text-slate-900">Trailing and forward P/E over time</h4>
-          <p class="text-xs text-slate-500">${withPe.length} daily snapshots from ${fmtDate(withPe[0].d)} to ${fmtDate(withPe[withPe.length - 1].d)}. Forward P/E uses whatever the consensus was on each day.</p>
+          <p class="text-xs text-slate-500">${withPe.length} readings from ${fmtDate(withPe[0].d)} to ${fmtDate(withPe[withPe.length - 1].d)}.${withPe.some(r => r.bf) ? ' Early weekly readings are rebuilt from past prices and annual EPS, so they are approximate and have no forward P/E.' : ''} Forward P/E uses whatever the consensus was on each day it was tracked.</p>
         </div>
         <div class="bg-white rounded-xl border border-slate-200 p-4"><div class="relative h-72"><canvas id="chart-hist"></canvas></div></div>`;
       charts.hist = new Chart($('chart-hist'), {

@@ -5,7 +5,8 @@ Reads tickers.txt, pulls data from Yahoo Finance through the yfinance library an
 two static files the website reads:
 
     <out>/stocks.json      latest snapshot for every ticker
-    <out>/pe_history.json  one row per ticker per day (builds up over time)
+    <out>/pe_history.json  one row per ticker per day (builds up over time; the first run also fills in
+                           roughly 4 years of past weekly P/E readings, marked "bf": 1)
 
 Usage
     python fetch_data.py                      # real data -> data/
@@ -210,6 +211,101 @@ def next_earnings(t, eps_est_rows) -> dict:
     return out
 
 
+def price_history(t, days: int = 400) -> dict | None:
+    """About one year of daily closing prices, stored compactly as two parallel lists."""
+    h = t.history(period="1y", interval="1d", auto_adjust=False)
+    if h is None or getattr(h, "empty", True) or "Close" not in h:
+        return None
+    dates, close = [], []
+    for idx, c in h["Close"].items():
+        v = pos(c, 2)
+        if v is not None:
+            dates.append(iso(idx))
+            close.append(v)
+    dates, close = dates[-days:], close[-days:]
+    return {"dates": dates, "close": close} if len(close) >= 5 else None
+
+
+def news_items(t, limit: int = 8) -> list[dict]:
+    """Recent headlines. yfinance has changed its news format over time, so both shapes are handled.
+    Only titles and links are stored (not article text)."""
+    out = []
+    for n in (t.news or []):
+        c = n.get("content") if isinstance(n.get("content"), dict) else n
+        title = txt(c.get("title"))
+        url = None
+        for key in ("canonicalUrl", "clickThroughUrl"):
+            if isinstance(c.get(key), dict) and txt(c[key].get("url")):
+                url = c[key]["url"].strip()
+                break
+        url = url or txt(c.get("link")) or txt(c.get("url"))
+        if not title or not url or not url.lower().startswith(("http://", "https://")):
+            continue
+        prov = c.get("provider")
+        publisher = txt(prov.get("displayName")) if isinstance(prov, dict) else txt(c.get("publisher"))
+        when = None
+        if txt(c.get("pubDate")):
+            when = c["pubDate"].strip()[:10]
+        elif num(c.get("providerPublishTime")) is not None:
+            when = dt.datetime.fromtimestamp(c["providerPublishTime"], dt.timezone.utc).date().isoformat()
+        out.append({"title": title[:200], "publisher": publisher, "url": url, "date": when})
+        if len(out) >= limit:
+            break
+    return out
+
+
+def backfill_pe(t, price_now, pe_now, lag_days: int = 75) -> list[dict]:
+    """Rebuild past trailing P/E readings (weekly) so the "vs own history" box works from day one.
+
+    P/E on a past week = that week's closing price / the most recent annual diluted EPS that had
+    already been reported by then (fiscal year end + ~75 days). It is an approximation (annual EPS
+    steps once a year), but it uses the same basis as today's trailing P/E. Rows are tagged "bf": 1.
+    Returns [] if anything looks inconsistent (for example EPS not adjusted for a stock split)."""
+    inc = t.income_stmt
+    if inc is None or getattr(inc, "empty", True):
+        return []
+    eps_by_end = []
+    for col in sorted(inc.columns):
+        v = None
+        for name in ("Diluted EPS", "Basic EPS"):
+            if name in inc.index:
+                v = num(inc.at[name, col])
+                if v is not None:
+                    break
+        end = iso(col)
+        if v is not None and end:
+            eps_by_end.append((dt.date.fromisoformat(end), v))
+    if len(eps_by_end) < 2:
+        return []
+
+    # sanity check: today's price over the newest annual EPS should be in the same ballpark as Yahoo's trailing P/E
+    newest_eps = eps_by_end[-1][1]
+    if newest_eps <= 0 or not pe_now or not price_now:
+        return []
+    ratio = (price_now / newest_eps) / pe_now
+    if not 0.4 <= ratio <= 2.5:
+        print(f"    backfill skipped: EPS basis looks off (ratio {ratio:.2f})", file=sys.stderr)
+        return []
+
+    h = t.history(period="5y", interval="1wk", auto_adjust=False)
+    if h is None or getattr(h, "empty", True) or "Close" not in h:
+        return []
+    rows = []
+    for idx, c in h["Close"].items():
+        close, d = pos(c, 2), iso(idx)
+        if close is None or not d:
+            continue
+        day = dt.date.fromisoformat(d)
+        usable = [e for end, e in eps_by_end if end + dt.timedelta(days=lag_days) <= day]
+        if not usable or usable[-1] <= 0:
+            continue
+        pe = close / usable[-1]
+        if pe > 1000:
+            continue
+        rows.append({"d": d, "price": close, "pe": round(pe, 2), "fwd": None, "bf": 1})
+    return rows
+
+
 def safe(fn, default):
     try:
         return fn()
@@ -252,6 +348,8 @@ def fetch_one(ticker: str, yf) -> dict:
         "analyst": analyst_block(t, info),
         "estimates": {"earnings": eps_rows, "revenue": rev_rows},
         "financials": safe(lambda: financial_rows(t), []),
+        "priceHistory": safe(lambda: price_history(t), None),
+        "news": safe(lambda: news_items(t), []),
         "financeSlug": f"{ticker}:{EXCHANGES.get(str(info.get('exchange')), 'NASDAQ')}",
         "saSlug": ticker.lower().replace("-", "."),
         "asOf": dt.date.today().isoformat(),
@@ -362,13 +460,15 @@ def main() -> int:
     history = {} if (args.demo or prev_payload.get("demo")) else load_json(out / "pe_history.json", {})
 
     stocks, errors = [], {}
+    yf = None
     if args.demo:
         for tk in tickers:
             s = demo_stock(tk)
             stocks.append(s)
             history[tk] = demo_history(s)
     else:
-        import yfinance as yf  # imported late so --demo works without it
+        import yfinance as yf_module  # imported late so --demo works without it
+        yf = yf_module
 
         for i, tk in enumerate(tickers):
             err = None
@@ -396,6 +496,24 @@ def main() -> int:
     if not args.demo and not fresh:
         print("Every ticker failed; leaving the deployed site unchanged.", file=sys.stderr)
         return 1
+
+    # first time we see a ticker (little history): fill in past weekly P/E readings
+    if not args.demo and yf is not None:
+        for s in fresh:
+            rows = history.get(s["ticker"], [])
+            if len(rows) >= 30:
+                continue
+            try:
+                old = backfill_pe(yf.Ticker(s["ticker"]), s["price"], s["pe"])
+            except Exception as e:  # never let this break the daily run
+                print(f"[{s['ticker']}] P/E backfill failed: {type(e).__name__}: {e}", file=sys.stderr)
+                continue
+            first = rows[0]["d"] if rows else "9999-12-31"
+            old = [r for r in old if r["d"] < first]
+            if old:
+                history[s["ticker"]] = old + rows
+                print(f"[{s['ticker']}] backfilled {len(old)} weekly P/E readings")
+            time.sleep(args.pause)
 
     # daily snapshot -> history (only for freshly fetched tickers)
     today = dt.date.today().isoformat()

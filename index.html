@@ -12,29 +12,106 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
   <script>
+    // Apply the saved (or system) theme before the page paints, so there is no white flash in dark mode.
+    (function () {
+      var dark = false;
+      try {
+        var saved = localStorage.getItem('theme');
+        dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+      } catch (e) {}
+      document.documentElement.classList.toggle('dark', dark);
+    })();
+  </script>
+  <script>
     tailwind.config = {
       theme: {
         extend: {
           fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
-          colors: { brand: { 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' } }
+          // "brand" is the accent color used all over the page. It is green now.
+          colors: { brand: { 50: '#ecfdf3', 100: '#d3f8e2', 200: '#a8efc6', 300: '#6fe0a3', 500: '#22a55b', 600: '#16883f', 700: '#116b33' } }
         }
       }
     };
   </script>
   <style>
-    body { font-family: 'Inter', system-ui, sans-serif; background-color: #f8fafc; color: #0f172a; }
+    body { font-family: 'Inter', system-ui, sans-serif; background-color: #f5faf6; color: #0f172a; transition: background-color .2s, color .2s; }
     .tabular-nums { font-variant-numeric: tabular-nums; }
     .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #eef5f0; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #b9ccbf; border-radius: 3px; }
     .tab-btn { padding: .5rem .9rem; font-size: .8rem; font-weight: 500; color: #64748b; border-bottom: 2px solid transparent; white-space: nowrap; }
     .tab-btn:hover { color: #0f172a; }
-    .tab-btn[aria-selected="true"] { color: #4338ca; border-bottom-color: #4f46e5; }
+    .tab-btn[aria-selected="true"] { color: #116b33; border-bottom-color: #16883f; }
     .th-sort { cursor: pointer; user-select: none; }
+    header.site-header { border-bottom: 2px solid #16883f; }
+
+    /* ---------------- Dark mode (black + green) ----------------
+       Turned on by adding the "dark" class to <html> (the toggle button in the header does this). */
+    html.dark { color-scheme: dark; }
+    html.dark body { background-color: #070b08; color: #e4efe8; }
+    html.dark .custom-scrollbar::-webkit-scrollbar-track { background: #0d1410; }
+    html.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #2c4636; }
+    html.dark .tab-btn { color: #8aa393; }
+    html.dark .tab-btn:hover { color: #e4efe8; }
+    html.dark .tab-btn[aria-selected="true"] { color: #4ade80; border-bottom-color: #22c55e; }
+    html.dark header.site-header { border-bottom-color: #22c55e; }
+
+    /* surfaces */
+    html.dark .bg-white { background-color: #0e150f; }
+    html.dark .bg-slate-50, html.dark .bg-slate-50\/60 { background-color: #0a100b; }
+    html.dark .bg-slate-100 { background-color: #17231a; }
+    html.dark .hover\:bg-slate-100:hover { background-color: #1c2b20; }
+    html.dark .hover\:bg-slate-50\/80:hover, html.dark .hover\:bg-slate-50:hover { background-color: #121c15; }
+    html.dark .shadow-sm, html.dark .shadow-2xl { box-shadow: none; }
+    html.dark input, html.dark select { background-color: #0a100b; color: #e4efe8; }
+
+    /* borders */
+    html.dark .border-slate-200, html.dark .border-slate-100, html.dark .border-white { border-color: #1f2f24; }
+    html.dark .border-slate-300 { border-color: #2c4636; }
+    html.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: #1a2a1f; }
+
+    /* text */
+    html.dark .text-slate-900, html.dark .text-slate-800, html.dark .hover\:text-slate-900:hover { color: #ecf5ef; }
+    html.dark .text-slate-700, html.dark .hover\:text-slate-700:hover { color: #cfded4; }
+    html.dark .text-slate-600, html.dark .hover\:text-slate-600:hover { color: #a7bdaf; }
+    html.dark .text-slate-500 { color: #88a092; }
+    html.dark .text-slate-400 { color: #6a8274; }
+
+    /* green accent */
+    html.dark .bg-brand-50, html.dark .bg-brand-50\/60 { background-color: rgba(34, 197, 94, .12); }
+    html.dark .bg-brand-100, html.dark .hover\:bg-brand-50:hover, html.dark .hover\:bg-brand-100:hover { background-color: rgba(34, 197, 94, .2); }
+    html.dark .bg-brand-200 { background-color: rgba(34, 197, 94, .35); }
+    html.dark .border-brand-100, html.dark .border-brand-200, html.dark .border-brand-300 { border-color: rgba(34, 197, 94, .4); }
+    html.dark .text-brand-600, html.dark .text-brand-700, html.dark .hover\:text-brand-700:hover { color: #4ade80; }
+    html.dark .bg-brand-600 { background-color: #16a34a; }
+    html.dark .hover\:bg-brand-700:hover { background-color: #15803d; }
+    html.dark .ring-brand-300 { --tw-ring-color: rgba(74, 222, 128, .5); }
+
+    /* colored status chips and banners */
+    html.dark .bg-emerald-50\/50, html.dark .bg-emerald-50\/70 { background-color: rgba(34, 197, 94, .1); }
+    html.dark .bg-emerald-100 { background-color: rgba(34, 197, 94, .2); }
+    html.dark .border-emerald-200 { border-color: rgba(34, 197, 94, .35); }
+    html.dark .text-emerald-700, html.dark .text-emerald-800 { color: #4ade80; }
+    html.dark .bg-rose-50\/60, html.dark .hover\:bg-rose-50:hover { background-color: rgba(244, 63, 94, .1); }
+    html.dark .bg-rose-100 { background-color: rgba(244, 63, 94, .2); }
+    html.dark .text-rose-700, html.dark .text-rose-800, html.dark .hover\:text-rose-600:hover { color: #fb7185; }
+    html.dark .bg-amber-50, html.dark .bg-orange-50\/50 { background-color: rgba(245, 158, 11, .1); }
+    html.dark .bg-amber-100 { background-color: rgba(245, 158, 11, .2); }
+    html.dark .border-amber-200, html.dark .border-orange-200 { border-color: rgba(245, 158, 11, .35); }
+    html.dark .text-amber-700, html.dark .text-amber-800, html.dark .text-amber-900, html.dark .text-orange-700 { color: #fcd34d; }
+    html.dark .bg-blue-50 { background-color: rgba(59, 130, 246, .1); }
+    html.dark .bg-blue-100, html.dark .bg-blue-200 { background-color: rgba(59, 130, 246, .22); }
+    html.dark .border-blue-200 { border-color: rgba(59, 130, 246, .35); }
+    html.dark .text-blue-800, html.dark .text-blue-900 { color: #93c5fd; }
+    html.dark .bg-slate-900\/50 { background-color: rgba(0, 0, 0, .7); }
+
+    /* theme toggle button: show the sun in dark mode, the moon in light mode */
+    html.dark .icon-moon { display: none; }
+    html:not(.dark) .icon-sun { display: none; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
-  <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+  <header class="site-header bg-white sticky top-0 z-30">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex flex-wrap items-center justify-between gap-3 py-3">
         <div class="flex items-center gap-2.5">
@@ -54,6 +131,9 @@
           <button type="button" id="view-cards-btn" class="px-2.5 py-1 rounded-md bg-white text-slate-900 shadow-sm">Cards</button>
           <button type="button" id="view-table-btn" class="px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900">Table</button>
         </div>
+        <button type="button" id="btn-theme" class="p-1.5 text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 rounded-lg" title="Switch between light and dark mode" aria-label="Toggle dark mode" aria-pressed="false">
+          <i data-lucide="moon" class="icon-moon w-4 h-4"></i><i data-lucide="sun" class="icon-sun w-4 h-4"></i>
+        </button>
         </div>
       </div>
     </div>
@@ -231,7 +311,12 @@
 
   <script>
     // ============================ constants & helpers ============================
-    const C = { blue: '#2a78d6', orange: '#eb6834', aqua: '#1baf7a', grid: '#e1e0d9', axis: '#c3c2b7', ink2: '#52514e', muted: '#898781' };
+    // Chart colors. These are swapped by applyTheme() below when you toggle dark mode.
+    const CHART_THEMES = {
+      light: { primary: '#16883f', orange: '#eb6834', third: '#2a78d6', lime: '#84cc16', grid: '#e1ebe4', axis: '#bccdc2', ink2: '#4a5a50', muted: '#7f9086' },
+      dark:  { primary: '#34d36b', orange: '#ff8a5c', third: '#5aa2f0', lime: '#c4f06a', grid: '#1b2a20', axis: '#2c4636', ink2: '#a7bdaf', muted: '#7f9889' }
+    };
+    const C = Object.assign({}, CHART_THEMES.light);
     const OUTLIER_PE = 100;
 
     const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -494,7 +579,7 @@
         data: {
           labels: list.map(s => s.ticker),
           datasets: [
-            { label: 'P/E (TTM)', data: list.map(s => isNum(s.pe) ? s.pe : null), backgroundColor: C.blue, borderRadius: 4, maxBarThickness: 22 },
+            { label: 'P/E (TTM)', data: list.map(s => isNum(s.pe) ? s.pe : null), backgroundColor: C.primary, borderRadius: 4, maxBarThickness: 22 },
             { label: 'Forward P/E', data: list.map(s => isNum(s.fwdPe) ? s.fwdPe : null), backgroundColor: C.orange, borderRadius: 4, maxBarThickness: 22 }
           ]
         },
@@ -512,7 +597,7 @@
       killChart('range');
       charts.range = new Chart($('chart-range-pos'), {
         type: 'bar',
-        data: { labels: rp.map(s => s.ticker), datasets: [{ label: '52W range position', data: rp.map(s => +rangePos(s).toFixed(1)), backgroundColor: C.blue, borderRadius: 4, maxBarThickness: 20 }] },
+        data: { labels: rp.map(s => s.ticker), datasets: [{ label: '52W range position', data: rp.map(s => +rangePos(s).toFixed(1)), backgroundColor: C.primary, borderRadius: 4, maxBarThickness: 20 }] },
         options: baseOptions({
           indexAxis: 'y',
           plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.raw}% of 52-week range` } } },
@@ -532,6 +617,26 @@
     $('view-cards-btn').addEventListener('click', () => setView('cards'));
     $('view-table-btn').addEventListener('click', () => setView('table'));
     $('toggle-outliers').addEventListener('change', renderCharts);
+
+    // ============================ dark mode ============================
+    function isDark() { return document.documentElement.classList.contains('dark'); }
+
+    // Swap the chart colors to match the current theme and redraw any charts that are on screen.
+    function applyTheme(redraw) {
+      Object.assign(C, CHART_THEMES[isDark() ? 'dark' : 'light']);
+      Chart.defaults.color = C.ink2;
+      $('btn-theme').setAttribute('aria-pressed', String(isDark()));
+      if (!redraw) return;
+      if (stocks.length) renderCharts();
+      if (selected && !$('modal-analyze').classList.contains('hidden')) showTab(activeTab);
+    }
+
+    $('btn-theme').addEventListener('click', () => {
+      const dark = !isDark();
+      document.documentElement.classList.toggle('dark', dark);
+      try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
+      applyTheme(true);
+    });
 
     $('stock-thead').addEventListener('click', (e) => {
       const th = e.target.closest('th[data-sort]');
@@ -629,9 +734,9 @@
         data: {
           labels: rows.map(r => r.year),
           datasets: [
-            { label: 'Revenue', data: b('revenue'), backgroundColor: C.blue, borderRadius: 4, maxBarThickness: 22 },
+            { label: 'Revenue', data: b('revenue'), backgroundColor: C.primary, borderRadius: 4, maxBarThickness: 22 },
             { label: 'Net income', data: b('netIncome'), backgroundColor: C.orange, borderRadius: 4, maxBarThickness: 22 },
-            { label: 'Free cash flow', data: b('fcf'), backgroundColor: C.aqua, borderRadius: 4, maxBarThickness: 22 }
+            { label: 'Free cash flow', data: b('fcf'), backgroundColor: C.third, borderRadius: 4, maxBarThickness: 22 }
           ]
         },
         options: baseOptions({
@@ -683,7 +788,7 @@
           <div class="relative h-12 mt-2" role="img" aria-label="Price target range ${fmtUSD(a.targetLow)} to ${fmtUSD(a.targetHigh)}, mean ${fmtUSD(a.targetMean)}, current price ${fmtUSD(s.price)}">
             <div class="absolute top-5 left-0 right-0 h-1.5 bg-slate-100 rounded-full"></div>
             <div class="absolute top-5 h-1.5 bg-blue-200 rounded-full" style="left:${p(a.targetLow)}%;width:${p(a.targetHigh) - p(a.targetLow)}%"></div>
-            ${isNum(a.targetMean) ? `<div class="absolute top-3.5 w-3.5 h-3.5 rounded-full border-2 border-white shadow" style="left:calc(${p(a.targetMean)}% - 7px);background:${C.blue}" title="Mean target"></div>` : ''}
+            ${isNum(a.targetMean) ? `<div class="absolute top-3.5 w-3.5 h-3.5 rounded-full border-2 border-white shadow" style="left:calc(${p(a.targetMean)}% - 7px);background:${C.primary}" title="Mean target"></div>` : ''}
             <div class="absolute top-2 w-0.5 h-8 bg-slate-900" style="left:${p(s.price)}%" title="Current price"></div>
             <span class="absolute top-0 text-[11px] font-semibold text-slate-900 -translate-x-1/2 whitespace-nowrap" style="left:${clamp(p(s.price), 6, 94)}%">Now ${fmtUSD(s.price)}</span>
           </div>
@@ -753,7 +858,7 @@
         data: {
           labels: withPe.map(r => r.d),
           datasets: [
-            { label: 'P/E (TTM)', data: withPe.map(r => isNum(r.pe) ? r.pe : null), borderColor: C.blue, backgroundColor: C.blue, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: 0.2, spanGaps: true },
+            { label: 'P/E (TTM)', data: withPe.map(r => isNum(r.pe) ? r.pe : null), borderColor: C.primary, backgroundColor: C.primary, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: 0.2, spanGaps: true },
             { label: 'Forward P/E', data: withPe.map(r => isNum(r.fwd) ? r.fwd : null), borderColor: C.orange, backgroundColor: C.orange, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: 0.2, spanGaps: true }
           ]
         },
@@ -836,8 +941,8 @@
         data: {
           labels,
           datasets: [
-            { label: `Bull (${bullPe}x)`, data: seriesFor(bullPe), borderColor: C.aqua, backgroundColor: C.aqua, borderWidth: 2, pointRadius: 3, tension: 0.25 },
-            { label: `Base (${basePe}x)`, data: seriesFor(basePe), borderColor: C.blue, backgroundColor: C.blue, borderWidth: 2.5, pointRadius: 3, tension: 0.25 },
+            { label: `Bull (${bullPe}x)`, data: seriesFor(bullPe), borderColor: C.lime, backgroundColor: C.lime, borderWidth: 2, pointRadius: 3, tension: 0.25 },
+            { label: `Base (${basePe}x)`, data: seriesFor(basePe), borderColor: C.primary, backgroundColor: C.primary, borderWidth: 2.5, pointRadius: 3, tension: 0.25 },
             { label: `Bear (${bearPe}x)`, data: seriesFor(bearPe), borderColor: C.orange, backgroundColor: C.orange, borderWidth: 2, pointRadius: 3, tension: 0.25 }
           ]
         },
@@ -985,7 +1090,7 @@
     // ============================ start ============================
     window.addEventListener('DOMContentLoaded', () => {
       Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
-      Chart.defaults.color = C.ink2;
+      applyTheme(false);
       lucide.createIcons();
       loadConfig();
       loadData();

@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Magnificent 7 — Stock Valuation &amp; Earnings Dashboard</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Stock Valuation &amp; Earnings Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -15,9 +16,7 @@
       theme: {
         extend: {
           fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
-          colors: {
-            brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' }
-          }
+          colors: { brand: { 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' } }
         }
       }
     };
@@ -25,14 +24,16 @@
   <style>
     body { font-family: 'Inter', system-ui, sans-serif; background-color: #f8fafc; color: #0f172a; }
     .tabular-nums { font-variant-numeric: tabular-nums; }
-
     .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    .tab-btn { padding: .5rem .9rem; font-size: .8rem; font-weight: 500; color: #64748b; border-bottom: 2px solid transparent; white-space: nowrap; }
+    .tab-btn:hover { color: #0f172a; }
+    .tab-btn[aria-selected="true"] { color: #4338ca; border-bottom-color: #4f46e5; }
+    .th-sort { cursor: pointer; user-select: none; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
-  <!-- Header -->
   <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex flex-wrap items-center justify-between gap-3 py-3">
@@ -41,1333 +42,802 @@
             <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
           </div>
           <div>
-            <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-900 leading-none">Magnificent 7 Dashboard</h1>
-            <p class="text-xs text-slate-500 mt-0.5">52-Week Range, P/E Multiples &amp; Next Earnings Estimates (Nov 2026 Baseline)</p>
+            <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-900 leading-none">Stock Dashboard</h1>
+            <p id="last-updated" class="text-xs text-slate-500 mt-0.5">Loading…</p>
           </div>
         </div>
-
-        <div class="flex items-center gap-2">
-          <div id="view-mode-toggle" class="inline-flex rounded-lg bg-slate-100 p-0.5 text-xs font-medium">
-            <button type="button" id="view-cards-btn" class="px-2.5 py-1 rounded-md bg-white text-slate-900 shadow-xs">Cards</button>
-            <button type="button" id="view-table-btn" class="px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900">Table</button>
-          </div>
-          <button type="button" id="btn-add-stock" class="px-2.5 py-1.5 text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 rounded-lg transition-colors flex items-center gap-1" title="Add a new stock">
-            <i data-lucide="plus" class="w-3.5 h-3.5"></i><span>Add Stock</span>
-          </button>
-          <button type="button" id="btn-finnhub-refresh" class="px-2.5 py-1.5 text-xs font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs" title="Fetch live Price, 52W High/Low, and P/E (TTM) via Finnhub">
-            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i><span>Live Quotes</span>
-          </button>
-          <button type="button" id="btn-finnhub-settings" class="p-1.5 text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors" title="Finnhub API Key Settings">
-            <i data-lucide="key-round" class="w-3.5 h-3.5"></i>
-          </button>
-          <button type="button" id="btn-gist-sync" class="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-1.5" title="Sync edits across devices via GitHub Gist">
-            <span id="gist-status-dot" class="w-2 h-2 rounded-full bg-slate-400"></span>
-            <i data-lucide="cloud" class="w-3.5 h-3.5"></i><span>Sync</span>
-          </button>
-          <button type="button" id="btn-reset-data" class="px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
-            Reset
-          </button>
+        <div id="view-mode-toggle" class="inline-flex rounded-lg bg-slate-100 p-0.5 text-xs font-medium">
+          <button type="button" id="view-cards-btn" class="px-2.5 py-1 rounded-md bg-white text-slate-900 shadow-sm">Cards</button>
+          <button type="button" id="view-table-btn" class="px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900">Table</button>
         </div>
       </div>
     </div>
   </header>
 
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-    <!-- Summary KPIs -->
+    <div id="banner" class="hidden"></div>
     <div id="summary-kpis" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
-
-    <!-- Cards View -->
     <section id="cards-section" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"></section>
 
-    <!-- Table View (always accessible or toggled) -->
     <section id="table-section" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div class="p-4 sm:p-5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 class="text-base font-semibold text-slate-900">Magnificent 7 Side-by-Side Comparison</h2>
-          <p class="text-xs text-slate-500 mt-0.5">Click any column header to sort, or click Edit to update live quotes.</p>
-        </div>
+      <div class="p-4 sm:p-5 border-b border-slate-200">
+        <h2 class="text-base font-semibold text-slate-900">Side-by-Side Comparison</h2>
+        <p class="text-xs text-slate-500 mt-0.5">Click any column header to sort. Click a row to open the full analysis.</p>
       </div>
       <div class="overflow-x-auto custom-scrollbar">
         <table class="w-full text-left border-collapse">
-          <thead id="mag7-thead" class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider"></thead>
-          <tbody id="mag7-tbody" class="divide-y divide-slate-100 text-sm"></tbody>
+          <thead id="stock-thead" class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider"></thead>
+          <tbody id="stock-tbody" class="divide-y divide-slate-100 text-sm"></tbody>
         </table>
       </div>
     </section>
 
-    <!-- Charts Row -->
-    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <section id="charts-section" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div>
             <h2 class="text-sm font-semibold text-slate-900">Trailing P/E vs. Forward P/E</h2>
-            <p class="text-xs text-slate-500">Earnings multiple compression / expansion</p>
+            <p class="text-xs text-slate-500">Forward below trailing = earnings expected to grow</p>
           </div>
           <label class="flex items-center gap-1.5 text-xs font-medium text-slate-600 cursor-pointer">
-            <input type="checkbox" id="toggle-include-tsla" class="rounded text-brand-600 focus:ring-brand-500" />
-            <span>Include TSLA (outlier scale)</span>
+            <input type="checkbox" id="toggle-outliers" class="rounded text-brand-600 focus:ring-brand-500" />
+            <span>Include outliers (P/E &gt; 100x)</span>
           </label>
         </div>
-        <div class="relative h-72">
-          <canvas id="chart-pe-compare"></canvas>
-        </div>
+        <div class="relative h-72"><canvas id="chart-pe-compare"></canvas></div>
       </div>
-
       <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-        <div class="flex items-center justify-between mb-3">
-          <div>
-            <h2 class="text-sm font-semibold text-slate-900">52-Week Range Position (%)</h2>
-            <p class="text-xs text-slate-500">0% = 52-Week Low • 100% = 52-Week High</p>
-          </div>
+        <div class="mb-3">
+          <h2 class="text-sm font-semibold text-slate-900">52-Week Range Position (%)</h2>
+          <p class="text-xs text-slate-500">0% = 52-week low • 100% = 52-week high</p>
         </div>
-        <div class="relative h-72">
-          <canvas id="chart-range-pos"></canvas>
-        </div>
+        <div class="relative h-72"><canvas id="chart-range-pos"></canvas></div>
       </div>
     </section>
   </main>
 
-  <!-- Stock P/E Analysis Modal -->
-  <div id="modal-analyze-stock" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-6">
+  <!-- Analysis modal -->
+  <div id="modal-analyze" class="hidden fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="analyze-title">
     <div class="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[92vh] flex flex-col overflow-hidden">
-      <div class="px-6 py-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-white">
-        <div>
-          <h3 id="analyze-modal-title" class="text-lg font-bold text-slate-900">P/E Price Forecast</h3>
-          <p class="text-xs text-slate-500">Model Bear / Base / Bull future share prices using EPS growth and exit P/E multiples.</p>
+      <div class="px-5 sm:px-6 pt-4 border-b border-slate-200 bg-white">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 id="analyze-title" class="text-lg font-bold text-slate-900">Analysis</h3>
+            <p id="analyze-sub" class="text-xs text-slate-500"></p>
+          </div>
+          <div class="flex items-center gap-3">
+            <select id="stock-select" class="px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" aria-label="Choose stock"></select>
+            <button type="button" id="btn-close-modal" class="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100" aria-label="Close"><i data-lucide="x" class="w-5 h-5"></i></button>
+          </div>
         </div>
-        <div class="flex items-center gap-3">
-          <select id="pe-stock-select" class="px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"></select>
-          <button type="button" data-close-modal="modal-analyze-stock" class="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100"><i data-lucide="x" class="w-5 h-5"></i></button>
+        <div class="flex gap-1 mt-3 overflow-x-auto custom-scrollbar" role="tablist" id="tab-bar">
+          <button type="button" class="tab-btn" role="tab" data-tab="valuation" aria-selected="true">P/E Forecast</button>
+          <button type="button" class="tab-btn" role="tab" data-tab="financials" aria-selected="false">Financials</button>
+          <button type="button" class="tab-btn" role="tab" data-tab="estimates" aria-selected="false">Estimates</button>
+          <button type="button" class="tab-btn" role="tab" data-tab="analysts" aria-selected="false">Analysts</button>
+          <button type="button" class="tab-btn" role="tab" data-tab="history" aria-selected="false">P/E History</button>
         </div>
       </div>
 
-      <div class="p-5 sm:p-6 overflow-y-auto custom-scrollbar space-y-6">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div class="lg:col-span-4 space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">Current Price ($)</label>
-                <input type="number" step="0.01" min="0.01" id="pe-current-price" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white tabular-nums" />
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">Implied TTM EPS ($)</label>
-                <input type="number" step="0.01" min="0.01" id="pe-current-eps" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white tabular-nums" />
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-              <div class="bg-white rounded-lg border border-slate-200 px-3 py-2">
-                <span class="block text-[11px] font-medium text-slate-500">Current P/E (TTM)</span>
-                <span id="pe-current-ratio-badge" class="text-base font-bold text-slate-900 tabular-nums">—</span>
-              </div>
-              <div class="bg-white rounded-lg border border-slate-200 px-3 py-2">
-                <span class="block text-[11px] font-medium text-slate-500">Forward P/E</span>
-                <span id="pe-forward-ratio-badge" class="text-base font-bold text-brand-700 tabular-nums">—</span>
-              </div>
-            </div>
-
-            <div>
-              <div class="flex justify-between text-xs font-medium text-slate-700 mb-1">
-                <span>Forecast Horizon</span>
-                <span id="pe-horizon-val" class="text-brand-600 font-semibold">5 Years</span>
-              </div>
-              <input type="range" id="pe-horizon" min="1" max="10" step="1" value="5" class="w-full accent-brand-600" />
-            </div>
-
-            <div>
-              <div class="flex justify-between text-xs font-medium text-slate-700 mb-1">
-                <span>Expected EPS Growth (CAGR)</span>
-                <span id="pe-eps-growth-val" class="text-brand-600 font-semibold">15.0%</span>
-              </div>
-              <input type="range" id="pe-eps-growth" min="-5" max="45" step="0.5" value="15" class="w-full accent-brand-600" />
-            </div>
-
-            <div class="pt-2 border-t border-slate-200 space-y-3">
-              <p class="text-xs font-semibold text-slate-700 uppercase tracking-wider">Target Exit P/E Multiples</p>
-              <div>
-                <div class="flex justify-between text-xs font-medium text-rose-700 mb-1">
-                  <span>Bear Case P/E</span>
-                  <span id="pe-bear-val" class="font-semibold">18.0x</span>
+      <div class="p-5 sm:p-6 overflow-y-auto custom-scrollbar">
+        <!-- Valuation -->
+        <div id="tab-valuation" class="space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div class="lg:col-span-4 space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-medium text-slate-600 mb-1" for="pe-current-price">Current Price ($)</label>
+                  <input type="number" step="0.01" min="0.01" id="pe-current-price" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white tabular-nums" />
                 </div>
-                <input type="range" id="pe-bear" min="5" max="150" step="0.5" value="18" class="w-full accent-rose-500" />
-              </div>
-              <div>
-                <div class="flex justify-between text-xs font-medium text-brand-700 mb-1">
-                  <span>Base Case P/E</span>
-                  <span id="pe-base-val" class="font-semibold">25.0x</span>
+                <div>
+                  <label class="block text-xs font-medium text-slate-600 mb-1" for="pe-current-eps">TTM EPS ($)</label>
+                  <input type="number" step="0.01" min="0.01" id="pe-current-eps" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white tabular-nums" />
                 </div>
-                <input type="range" id="pe-base" min="5" max="200" step="0.5" value="25" class="w-full accent-brand-600" />
               </div>
-              <div>
-                <div class="flex justify-between text-xs font-medium text-emerald-700 mb-1">
-                  <span>Bull Case P/E</span>
-                  <span id="pe-bull-val" class="font-semibold">32.0x</span>
+              <p id="pe-eps-note" class="hidden text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2"></p>
+              <div class="grid grid-cols-2 gap-3">
+                <div class="bg-white rounded-lg border border-slate-200 px-3 py-2">
+                  <span class="block text-[11px] font-medium text-slate-500">Current P/E (TTM)</span>
+                  <span id="pe-current-ratio-badge" class="text-base font-bold text-slate-900 tabular-nums">—</span>
                 </div>
-                <input type="range" id="pe-bull" min="5" max="250" step="0.5" value="32" class="w-full accent-emerald-600" />
+                <div class="bg-white rounded-lg border border-slate-200 px-3 py-2">
+                  <span class="block text-[11px] font-medium text-slate-500">Forward P/E</span>
+                  <span id="pe-forward-ratio-badge" class="text-base font-bold text-brand-700 tabular-nums">—</span>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between text-xs font-medium text-slate-700 mb-1"><span>Forecast Horizon</span><span id="pe-horizon-val" class="text-brand-600 font-semibold">5 Years</span></div>
+                <input type="range" id="pe-horizon" min="1" max="10" step="1" value="5" class="w-full accent-brand-600" aria-label="Forecast horizon in years" />
+              </div>
+              <div>
+                <div class="flex justify-between text-xs font-medium text-slate-700 mb-1"><span>Expected EPS Growth (CAGR)</span><span id="pe-eps-growth-val" class="text-brand-600 font-semibold">10.0%</span></div>
+                <input type="range" id="pe-eps-growth" min="-5" max="45" step="0.5" value="10" class="w-full accent-brand-600" aria-label="Expected EPS growth" />
+                <p id="pe-growth-hint" class="text-[11px] text-slate-500 mt-1"></p>
+              </div>
+              <div class="pt-2 border-t border-slate-200 space-y-3">
+                <p class="text-xs font-semibold text-slate-700 uppercase tracking-wider">Target Exit P/E Multiples</p>
+                <div>
+                  <div class="flex justify-between text-xs font-medium text-slate-700 mb-1"><span>Bear Case P/E</span><span id="pe-bear-val" class="font-semibold">—</span></div>
+                  <input type="range" id="pe-bear" min="5" max="150" step="0.5" value="18" class="w-full accent-orange-500" aria-label="Bear case P/E" />
+                </div>
+                <div>
+                  <div class="flex justify-between text-xs font-medium text-slate-700 mb-1"><span>Base Case P/E</span><span id="pe-base-val" class="font-semibold">—</span></div>
+                  <input type="range" id="pe-base" min="5" max="200" step="0.5" value="25" class="w-full accent-brand-600" aria-label="Base case P/E" />
+                </div>
+                <div>
+                  <div class="flex justify-between text-xs font-medium text-slate-700 mb-1"><span>Bull Case P/E</span><span id="pe-bull-val" class="font-semibold">—</span></div>
+                  <input type="range" id="pe-bull" min="5" max="250" step="0.5" value="32" class="w-full accent-emerald-600" aria-label="Bull case P/E" />
+                </div>
+              </div>
+              <div class="pt-2 border-t border-slate-200">
+                <label class="block text-xs font-medium text-slate-600 mb-1" for="pe-discount-rate">Required Return / Discount Rate (%)</label>
+                <input type="number" step="0.5" min="1" max="25" id="pe-discount-rate" value="10" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white tabular-nums" />
               </div>
             </div>
-
-            <div class="pt-2 border-t border-slate-200">
-              <label class="block text-xs font-medium text-slate-600 mb-1">Required Return / Discount Rate (%)</label>
-              <input type="number" step="0.5" min="1" max="25" id="pe-discount-rate" value="10" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white tabular-nums" />
+            <div class="lg:col-span-8 space-y-5">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" id="pe-scenario-cards"></div>
+              <div class="bg-white rounded-xl border border-slate-200 p-4">
+                <div class="flex items-center justify-between mb-2">
+                  <h4 class="text-sm font-semibold text-slate-800">Projected Share Price Trajectory</h4>
+                  <span id="pe-implied-current" class="text-xs text-slate-500"></span>
+                </div>
+                <div class="relative h-64"><canvas id="chart-pe-projection"></canvas></div>
+              </div>
             </div>
           </div>
-
-          <div class="lg:col-span-8 space-y-5">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" id="pe-scenario-cards"></div>
-            <div class="bg-white rounded-xl border border-slate-200 p-4">
-              <div class="flex items-center justify-between mb-2">
-                <h4 class="text-sm font-semibold text-slate-800">Projected Share Price Trajectory</h4>
-                <span id="pe-implied-current" class="text-xs text-slate-500"></span>
-              </div>
-              <div class="relative h-64">
-                <canvas id="chart-pe-projection"></canvas>
-              </div>
+          <div class="bg-slate-50 rounded-xl border border-slate-200 p-4">
+            <div class="mb-3">
+              <h4 class="text-sm font-semibold text-slate-900">Valuation Sensitivity (Year <span id="matrix-year-label">5</span> price &amp; total return)</h4>
+              <p class="text-xs text-slate-500">Rows: EPS growth CAGR. Columns: exit P/E multiple. A what-if tool, not a prediction.</p>
+            </div>
+            <div class="overflow-x-auto custom-scrollbar">
+              <table class="w-full text-center border-collapse text-xs sm:text-sm bg-white rounded-lg overflow-hidden" id="pe-sensitivity-table"></table>
             </div>
           </div>
         </div>
 
-        <!-- Sensitivity Matrix -->
-        <div class="bg-slate-50 rounded-xl border border-slate-200 p-4">
-          <div class="mb-3">
-            <h4 class="text-sm font-semibold text-slate-900">Valuation Sensitivity Matrix (Year <span id="matrix-year-label">5</span> Price &amp; Return)</h4>
-            <p class="text-xs text-slate-500">Rows show EPS Growth CAGR; columns show Exit P/E Multiple.</p>
-          </div>
-          <div class="overflow-x-auto custom-scrollbar">
-            <table class="w-full text-center border-collapse text-xs sm:text-sm bg-white rounded-lg overflow-hidden" id="pe-sensitivity-table"></table>
-          </div>
-        </div>
+        <div id="tab-financials" class="hidden space-y-5"></div>
+        <div id="tab-estimates" class="hidden space-y-5"></div>
+        <div id="tab-analysts" class="hidden space-y-5"></div>
+        <div id="tab-history" class="hidden space-y-5"></div>
       </div>
     </div>
   </div>
-
-  <!-- Add Stock Modal -->
-  <div id="modal-add-stock" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
-      <div class="flex items-center justify-between">
-        <h3 class="text-lg font-bold text-slate-900">Add Stock by Ticker</h3>
-        <button type="button" data-close-modal="modal-add-stock" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
-      </div>
-      <p id="add-stock-api-hint" class="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-2.5"></p>
-      <form id="form-add-stock" class="space-y-3">
-        <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">Ticker Symbol *</label>
-          <input type="text" id="add-ticker" required placeholder="e.g. AVGO, NFLX, AMD" class="w-full px-3 py-2 text-sm font-semibold border border-slate-300 rounded-lg uppercase tracking-wide" />
-        </div>
-
-        <details class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs">
-          <summary class="font-medium text-slate-700 cursor-pointer select-none">Optional manual fields (auto-filled when Finnhub key is set)</summary>
-          <div class="space-y-2.5 mt-3">
-            <div class="grid grid-cols-2 gap-2.5">
-              <div>
-                <label class="block text-[11px] font-medium text-slate-600 mb-1">Company Name</label>
-                <input type="text" id="add-name" placeholder="Auto from API" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white" />
-              </div>
-              <div>
-                <label class="block text-[11px] font-medium text-slate-600 mb-1">Sector</label>
-                <input type="text" id="add-sector" placeholder="Auto from API" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white" />
-              </div>
-            </div>
-            <div class="grid grid-cols-3 gap-2">
-              <div>
-                <label class="block text-[11px] font-medium text-slate-600 mb-1">Price ($)</label>
-                <input type="number" step="0.01" min="0.01" id="add-price" placeholder="Auto" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white tabular-nums" />
-              </div>
-              <div>
-                <label class="block text-[11px] font-medium text-slate-600 mb-1">52W Low ($)</label>
-                <input type="number" step="0.01" min="0.01" id="add-low" placeholder="Auto" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white tabular-nums" />
-              </div>
-              <div>
-                <label class="block text-[11px] font-medium text-slate-600 mb-1">52W High ($)</label>
-                <input type="number" step="0.01" min="0.01" id="add-high" placeholder="Auto" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white tabular-nums" />
-              </div>
-            </div>
-            <div class="grid grid-cols-2 gap-2.5">
-              <div>
-                <label class="block text-[11px] font-medium text-slate-600 mb-1">P/E (TTM)</label>
-                <input type="number" step="0.01" min="0" id="add-pe" placeholder="Auto" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white tabular-nums" />
-              </div>
-              <div>
-                <label class="block text-[11px] font-medium text-slate-600 mb-1">Forward P/E</label>
-                <input type="number" step="0.01" min="0" id="add-fwdpe" placeholder="Optional" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white tabular-nums" />
-              </div>
-            </div>
-            <div class="grid grid-cols-2 gap-2.5">
-              <div>
-                <label class="block text-[11px] font-medium text-slate-600 mb-1">Next Quarter</label>
-                <input type="text" id="add-nextq" placeholder="e.g. Q1 2027" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white" />
-              </div>
-              <div>
-                <label class="block text-[11px] font-medium text-slate-600 mb-1">Next Earnings Est.</label>
-                <input type="text" id="add-nextest" placeholder="e.g. EPS Est: $1.65" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white" />
-              </div>
-            </div>
-          </div>
-        </details>
-
-        <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
-          <button type="button" data-close-modal="modal-add-stock" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-          <button type="submit" id="btn-submit-add-stock" class="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg">Pull &amp; Add Stock</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Edit Stock Modal -->
-  <div id="modal-edit-stock" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
-      <div class="flex items-center justify-between">
-        <h3 id="edit-modal-title" class="text-lg font-bold text-slate-900">Update Stock Data</h3>
-        <button type="button" data-close-modal="modal-edit-stock" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
-      </div>
-      <form id="form-edit-stock" class="space-y-3">
-        <input type="hidden" id="edit-ticker" />
-        <div class="grid grid-cols-3 gap-3">
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Current Price ($)</label>
-            <input type="number" step="0.01" min="0.01" id="edit-price" required class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg tabular-nums" />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">52W Low ($)</label>
-            <input type="number" step="0.01" min="0.01" id="edit-low" required class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg tabular-nums" />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">52W High ($)</label>
-            <input type="number" step="0.01" min="0.01" id="edit-high" required class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg tabular-nums" />
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">P/E Ratio (TTM)</label>
-            <input type="number" step="0.01" min="0" id="edit-pe" required class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg tabular-nums" />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Forward P/E Ratio</label>
-            <input type="number" step="0.01" min="0" id="edit-fwdpe" required class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg tabular-nums" />
-          </div>
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">Next Quarter Label</label>
-          <input type="text" id="edit-nextq" required class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg" />
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">Next Earnings Estimate</label>
-          <input type="text" id="edit-nextest" required class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg" />
-        </div>
-        <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
-          <button type="button" data-close-modal="modal-edit-stock" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-          <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg">Save Changes</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- GitHub Gist Sync Modal -->
-  <div id="modal-gist-sync" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <i data-lucide="cloud" class="w-5 h-5 text-brand-600"></i>
-          <h3 class="text-lg font-bold text-slate-900">GitHub Gist Multi-Device Sync</h3>
-        </div>
-        <button type="button" data-close-modal="modal-gist-sync" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
-      </div>
-      <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-600 space-y-1">
-        <p class="font-semibold text-slate-800">Quick Setup (Free, Private):</p>
-        <p>1. Create a GitHub Personal Access Token (classic) with only the <code class="px-1 py-0.5 bg-slate-200 rounded">gist</code> scope.</p>
-        <p>2. Paste your token below and click <strong>Push to Gist</strong> to create a private Gist automatically.</p>
-        <p>3. On other devices, paste the same token and <strong>Gist ID</strong>, then click <strong>Pull from Gist</strong>.</p>
-      </div>
-      <div class="space-y-3">
-        <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">GitHub Personal Access Token</label>
-          <input type="password" id="gist-token-input" placeholder="ghp_..." autocomplete="off" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg font-mono" />
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">Private Gist ID</label>
-          <input type="text" id="gist-id-input" placeholder="Leave blank on first Push to auto-create" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg font-mono" />
-        </div>
-        <label class="flex items-center justify-between pt-1 cursor-pointer">
-          <span class="text-xs font-medium text-slate-700">Auto-push edits to Gist</span>
-          <input type="checkbox" id="gist-autosync-input" class="rounded text-brand-600 focus:ring-brand-500" />
-        </label>
-        <p id="gist-sync-status-text" class="text-xs text-slate-500"></p>
-      </div>
-      <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100">
-        <button type="button" id="btn-gist-disconnect" class="px-3 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 rounded-lg">Disconnect</button>
-        <div class="flex items-center gap-2">
-          <button type="button" id="btn-gist-pull" class="px-3.5 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg">Pull from Gist</button>
-          <button type="button" id="btn-gist-push" class="px-3.5 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg">Push to Gist</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Live Data API Modal (Finnhub & FMP) -->
-  <div id="modal-finnhub" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <i data-lucide="key-round" class="w-5 h-5 text-brand-600"></i>
-          <h3 class="text-lg font-bold text-slate-900">Live Data API Setup</h3>
-        </div>
-        <button type="button" data-close-modal="modal-finnhub" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
-      </div>
-      <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-600 space-y-1">
-        <p class="font-semibold text-slate-800">Choose your API provider:</p>
-        <p>• <strong>Finnhub</strong> (free 60 calls/min at <a href="https://finnhub.io/register" target="_blank" rel="noopener noreferrer" class="text-brand-600 underline">finnhub.io</a>)</p>
-        <p>• <strong>FMP</strong> (Financial Modeling Prep at <a href="https://site.financialmodelingprep.com/developer/docs" target="_blank" rel="noopener noreferrer" class="text-brand-600 underline">financialmodelingprep.com</a>)</p>
-      </div>
-      <form id="form-finnhub" class="space-y-3">
-        <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">API Provider</label>
-          <select id="api-provider-select" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white font-medium">
-            <option value="finnhub">Finnhub</option>
-            <option value="fmp">Financial Modeling Prep (FMP)</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">API Key</label>
-          <input type="password" id="finnhub-key-input" placeholder="Paste your API key..." autocomplete="off" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg font-mono" />
-        </div>
-        <p id="finnhub-last-sync" class="text-xs text-slate-500"></p>
-        <div class="flex justify-between items-center pt-3 border-t border-slate-100">
-          <button type="button" id="btn-finnhub-clear" class="px-3 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 rounded-lg">Clear Key</button>
-          <div class="flex gap-2">
-            <button type="button" data-close-modal="modal-finnhub" class="px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-            <button type="submit" class="px-3.5 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg">Save &amp; Refresh</button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Toast Container -->
-  <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
 
   <script>
-    const STORAGE_KEY = 'mag7_dashboard_v1';
-    const GIST_CONFIG_KEY = 'mag7_gist_config_v1';
-    const GIST_FILENAME = 'mag7-dashboard.json';
+    // ============================ constants & helpers ============================
+    const C = { blue: '#2a78d6', orange: '#eb6834', aqua: '#1baf7a', grid: '#e1e0d9', axis: '#c3c2b7', ink2: '#52514e', muted: '#898781' };
+    const OUTLIER_PE = 100;
 
-    // Grounded Nov 2026 Magnificent 7 Baseline
-    const DEFAULT_STOCKS = [
-      {
-        ticker: 'AAPL', name: 'Apple Inc.', sector: 'Consumer Tech',
-        price: 342.56, low52: 243.42, high52: 360.83,
-        pe: 38.89, fwdPe: 37.00,
-        nextQuarter: 'Q1 FY27 (Dec 2026)',
-        nextEarningsEst: 'EPS Est: $2.91 • Q4 Rev Est: $113.4B',
-        financeSlug: 'AAPL:NASDAQ', saSlug: 'aapl'
-      },
-      {
-        ticker: 'MSFT', name: 'Microsoft Corp.', sector: 'Cloud & AI',
-        price: 484.52, low52: 349.20, high52: 559.15,
-        pe: 25.30, fwdPe: 25.97,
-        nextQuarter: 'Q2 FY27 (Oct–Dec 2026)',
-        nextEarningsEst: 'Rev Est: $98.6B (+21.4% YoY)',
-        financeSlug: 'MSFT:NASDAQ', saSlug: 'msft'
-      },
-      {
-        ticker: 'NVDA', name: 'NVIDIA Corp.', sector: 'Semiconductors',
-        price: 155.46, low52: 124.50, high52: 243.37,
-        pe: 13.49, fwdPe: 10.06,
-        nextQuarter: 'Q4 FY27 (Nov–Jan 2027)',
-        nextEarningsEst: 'Rev Guidance: $130B (Est $127.3B)',
-        financeSlug: 'NVDA:NASDAQ', saSlug: 'nvda'
-      },
-      {
-        ticker: 'AMZN', name: 'Amazon.com, Inc.', sector: 'Cloud & Retail',
-        price: 248.31, low52: 196.00, high52: 287.20,
-        pe: 19.97, fwdPe: 24.92,
-        nextQuarter: 'Q4 2026 (Oct–Dec 2026)',
-        nextEarningsEst: 'Rev Guidance: $240B–$247B • OpInc $28.5B–$33.5B',
-        financeSlug: 'AMZN:NASDAQ', saSlug: 'amzn'
-      },
-      {
-        ticker: 'GOOGL', name: 'Alphabet Inc.', sector: 'Search & Cloud',
-        price: 272.66, low52: 264.22, high52: 408.61,
-        pe: 14.23, fwdPe: 13.85,
-        nextQuarter: 'Q4 2026 (Oct–Dec 2026)',
-        nextEarningsEst: 'Rev Est: $146.9B (+29.0% YoY)',
-        financeSlug: 'GOOGL:NASDAQ', saSlug: 'googl'
-      },
-      {
-        ticker: 'META', name: 'Meta Platforms, Inc.', sector: 'Social & AI',
-        price: 560.84, low52: 520.26, high52: 779.82,
-        pe: 19.12, fwdPe: 17.01,
-        nextQuarter: 'Q4 2026 (Oct–Dec 2026)',
-        nextEarningsEst: 'EPS Est: $8.33 • Rev Guidance: $73B–$76B',
-        financeSlug: 'META:NASDAQ', saSlug: 'meta'
-      },
-      {
-        ticker: 'TSLA', name: 'Tesla, Inc.', sector: 'EV & Autonomy',
-        price: 381.49, low52: 297.38, high52: 498.83,
-        pe: 386.54, fwdPe: 164.66,
-        nextQuarter: 'Q4 2026 (Oct–Dec 2026)',
-        nextEarningsEst: 'EPS Est: $0.50 • Capex Focus ~$20B',
-        financeSlug: 'TSLA:NASDAQ', saSlug: 'tsla'
-      }
-    ];
+    const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const $ = (id) => document.getElementById(id);
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
-    let stocks = loadStocks();
-    let viewMode = 'cards';
-    let sortState = { key: 'ticker', dir: 'asc' };
-    let charts = { pe: null, range: null, peProj: null };
-    let gistTimer = null;
-
-    function loadStocks() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        }
-      } catch (e) { /* ignore */ }
-      return structuredClone(DEFAULT_STOCKS);
-    }
-
-    function saveStocks() {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(stocks));
-      } catch (e) { /* ignore */ }
-      const cfg = loadGistConfig();
-      if (cfg.autoSync && cfg.token && cfg.gistId) {
-        clearTimeout(gistTimer);
-        gistTimer = setTimeout(() => pushToGist(true), 1200);
-      }
-    }
-
-    const fmtUSD = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n);
-    const calcRangePos = (s) => {
-      const span = Math.max(0.01, s.high52 - s.low52);
-      return Math.max(0, Math.min(100, ((s.price - s.low52) / span) * 100));
+    const fmtUSD = (n) => isNum(n) ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n) : '—';
+    const fmtX = (n) => isNum(n) ? n.toFixed(2) + 'x' : '—';
+    const fmtPct = (n, d = 1) => isNum(n) ? (n > 0 ? '+' : '') + n.toFixed(d) + '%' : '—';
+    const fmtBig = (n) => {
+      if (!isNum(n)) return '—';
+      const a = Math.abs(n), s = n < 0 ? '-' : '';
+      if (a >= 1e12) return `${s}$${(a / 1e12).toFixed(2)}T`;
+      if (a >= 1e9) return `${s}$${(a / 1e9).toFixed(2)}B`;
+      if (a >= 1e6) return `${s}$${(a / 1e6).toFixed(1)}M`;
+      return `${s}$${a.toFixed(0)}`;
     };
-    const calcFromHigh = (s) => s.high52 > 0 ? ((s.price - s.high52) / s.high52) * 100 : 0;
+    const fmtDate = (iso) => iso ? new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+    const median = (arr) => {
+      const a = arr.filter(isNum).sort((x, y) => x - y);
+      if (!a.length) return null;
+      const m = a.length >> 1;
+      return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+    };
 
-    function showToast(msg, type = 'info') {
-      const container = document.getElementById('toast-container');
-      const bg = type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-rose-600' : 'bg-slate-800';
-      const el = document.createElement('div');
-      el.className = `${bg} text-white text-sm px-4 py-2.5 rounded-xl shadow-lg transition-opacity duration-300`;
-      el.textContent = msg;
-      container.appendChild(el);
-      setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 2500);
+    const rangePos = (s) => (isNum(s.price) && isNum(s.low52) && isNum(s.high52) && s.high52 > s.low52) ? clamp((s.price - s.low52) / (s.high52 - s.low52) * 100, 0, 100) : null;
+    const fromHigh = (s) => (isNum(s.price) && isNum(s.high52) && s.high52 > 0) ? (s.price - s.high52) / s.high52 * 100 : null;
+    const upside = (s) => (isNum(s.analyst?.targetMean) && isNum(s.price) && s.price > 0) ? (s.analyst.targetMean / s.price - 1) * 100 : null;
+    const multipleChange = (s) => (isNum(s.pe) && isNum(s.fwdPe) && s.pe > 0) ? (s.fwdPe - s.pe) / s.pe * 100 : null;
+
+    const RATING = {
+      strong_buy: ['Strong Buy', 'bg-blue-100 text-blue-800'], buy: ['Buy', 'bg-sky-100 text-sky-800'],
+      hold: ['Hold', 'bg-slate-100 text-slate-700'], underperform: ['Underperform', 'bg-rose-100 text-rose-700'],
+      sell: ['Sell', 'bg-rose-100 text-rose-700'], strong_sell: ['Strong Sell', 'bg-rose-100 text-rose-700']
+    };
+    const ratingBadge = (key) => {
+      const r = RATING[key];
+      return r ? `<span class="px-2 py-0.5 text-[11px] font-semibold rounded-full ${r[1]}">${r[0]}</span>` : '<span class="text-slate-400 text-xs">—</span>';
+    };
+
+    // ============================ state ============================
+    let stocks = [], history = {}, meta = {};
+    let viewMode = 'cards', sortState = { key: 'ticker', dir: 'asc' }, activeTab = 'valuation', selected = null;
+    const charts = {};
+
+    function killChart(name) { if (charts[name]) { charts[name].destroy(); charts[name] = null; } }
+    function baseOptions(extra = {}) {
+      return Object.assign({
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { position: 'top', align: 'end', labels: { boxWidth: 10, font: { size: 11 } } } },
+        scales: { x: { grid: { display: false }, border: { color: C.axis } }, y: { grid: { color: C.grid }, border: { display: false } } }
+      }, extra);
     }
 
-    function renderAll() {
-      renderKPIs();
-      renderCards();
-      renderTable();
-      renderCharts();
-      lucide.createIcons();
+    // ============================ data loading ============================
+    async function loadData() {
+      try {
+        const res = await fetch('data/stocks.json', { cache: 'no-cache' });
+        if (!res.ok) throw new Error(`data/stocks.json returned ${res.status}`);
+        const payload = await res.json();
+        stocks = Array.isArray(payload.stocks) ? payload.stocks : [];
+        meta = payload;
+        try {
+          const h = await fetch('data/pe_history.json', { cache: 'no-cache' });
+          history = h.ok ? await h.json() : {};
+        } catch (e) { history = {}; }
+        if (!stocks.length) throw new Error('stocks.json has no stocks');
+        showBanner();
+        renderAll();
+      } catch (err) {
+        $('last-updated').textContent = 'No data loaded';
+        $('summary-kpis').innerHTML = '';
+        $('charts-section').classList.add('hidden');
+        $('cards-section').innerHTML = `
+          <div class="col-span-full bg-white border border-slate-200 rounded-xl p-6 text-sm text-slate-700 space-y-2">
+            <p class="font-semibold text-slate-900">Couldn't load stock data (${esc(err.message)}).</p>
+            <p>Run <code class="px-1 bg-slate-100 rounded">python fetch_data.py</code> (add <code class="px-1 bg-slate-100 rounded">--demo</code> for sample data), then <code class="px-1 bg-slate-100 rounded">python -m http.server</code> in this folder and open http://localhost:8000. Opening index.html by double-click will not work because browsers block local file requests. On GitHub, the daily workflow creates the data for you.</p>
+          </div>`;
+      }
+    }
+
+    function showBanner() {
+      const gen = meta.generatedAt ? new Date(meta.generatedAt) : null;
+      $('last-updated').textContent = gen ? `Data updated ${gen.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })} • prices delayed` : 'Data updated —';
+      const parts = [];
+      if (meta.demo) parts.push(['bg-amber-50 border-amber-200 text-amber-900', 'DEMO DATA — these numbers are randomly generated and not real.']);
+      if (gen && (Date.now() - gen.getTime()) > 3 * 864e5) parts.push(['bg-amber-50 border-amber-200 text-amber-900', `Data is ${Math.round((Date.now() - gen.getTime()) / 864e5)} days old — check that the daily pipeline is still running.`]);
+      const failed = Object.keys(meta.errors || {});
+      if (failed.length) parts.push(['bg-slate-50 border-slate-200 text-slate-700', `Refresh failed for: ${failed.join(', ')}. Showing the last good data where available.`]);
+      const b = $('banner');
+      b.className = parts.length ? 'space-y-2' : 'hidden';
+      b.innerHTML = parts.map(([cls, msg]) => `<div class="border rounded-lg px-3 py-2 text-xs font-medium ${cls}">${esc(msg)}</div>`).join('');
+    }
+
+    // ============================ render: KPIs, cards, table ============================
+    function renderAll() { renderKPIs(); renderCards(); renderTable(); renderCharts(); lucide.createIcons(); }
+
+    function kpi(label, value, sub, valueCls = 'text-slate-900') {
+      return `<div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+        <p class="text-xs font-medium text-slate-500">${label}</p>
+        <p class="text-2xl font-bold ${valueCls} mt-1">${value}</p>
+        <p class="text-xs text-slate-500 mt-1">${sub}</p></div>`;
     }
 
     function renderKPIs() {
-      const exTsla = stocks.filter(s => s.ticker !== 'TSLA');
-      const avgPeEx = exTsla.reduce((s, x) => s + x.pe, 0) / exTsla.length;
-      const avgFwdEx = exTsla.reduce((s, x) => s + x.fwdPe, 0) / exTsla.length;
-      const sortedHigh = [...stocks].sort((a, b) => calcFromHigh(b) - calcFromHigh(a));
-      const closest = sortedHigh[0];
-      const deepest = sortedHigh[sortedHigh.length - 1];
-      const cheapestFwd = [...stocks].sort((a, b) => a.fwdPe - b.fwdPe)[0];
+      const medPe = median(stocks.map(s => s.pe)), medFwd = median(stocks.map(s => s.fwdPe));
+      const byFwd = stocks.filter(s => isNum(s.fwdPe)).sort((a, b) => a.fwdPe - b.fwdPe)[0];
+      const byUp = stocks.filter(s => isNum(upside(s))).sort((a, b) => upside(b) - upside(a))[0];
+      const byDrop = stocks.filter(s => isNum(fromHigh(s))).sort((a, b) => fromHigh(a) - fromHigh(b))[0];
+      $('summary-kpis').innerHTML = [
+        kpi('Median P/E (TTM → Forward)', `${isNum(medPe) ? medPe.toFixed(1) + 'x' : '—'} <span class="text-sm font-medium text-brand-600">→ ${isNum(medFwd) ? medFwd.toFixed(1) + 'x' : '—'}</span>`, `Median of ${stocks.length} stocks (not skewed by outliers)`),
+        kpi('Lowest Forward P/E', byFwd ? `${esc(byFwd.ticker)} (${byFwd.fwdPe.toFixed(1)}x)` : '—', byFwd ? `Trailing P/E: ${fmtX(byFwd.pe)}` : 'No forward P/E available', 'text-emerald-700'),
+        kpi('Most Upside to Analyst Target', byUp ? `${esc(byUp.ticker)} (${fmtPct(upside(byUp), 0)})` : '—', byUp ? `${fmtUSD(byUp.price)} → mean target ${fmtUSD(byUp.analyst.targetMean)}` : 'No targets available'),
+        kpi('Deepest Pullback vs 52W High', byDrop ? `${esc(byDrop.ticker)} (${fmtPct(fromHigh(byDrop), 1)})` : '—', byDrop ? `${fmtUSD(byDrop.price)} vs ${fmtUSD(byDrop.high52)} high` : '—', 'text-rose-700')
+      ].join('');
+    }
 
-      document.getElementById('summary-kpis').innerHTML = `
-        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-          <p class="text-xs font-medium text-slate-500">Avg P/E (Ex-TSLA)</p>
-          <p class="text-2xl font-bold text-slate-900 mt-1 tabular-nums">${avgPeEx.toFixed(1)}x <span class="text-sm font-medium text-brand-600">→ ${avgFwdEx.toFixed(1)}x Fwd</span></p>
-          <p class="text-xs text-slate-500 mt-1">Trailing vs. Forward multiple</p>
-        </div>
-        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-          <p class="text-xs font-medium text-slate-500">Lowest Forward P/E</p>
-          <p class="text-2xl font-bold text-emerald-600 mt-1 tabular-nums">${cheapestFwd.ticker} (${cheapestFwd.fwdPe.toFixed(1)}x)</p>
-          <p class="text-xs text-slate-500 mt-1">Trailing P/E: ${cheapestFwd.pe.toFixed(1)}x</p>
-        </div>
-        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-          <p class="text-xs font-medium text-slate-500">Closest to 52W High</p>
-          <p class="text-2xl font-bold text-slate-900 mt-1 tabular-nums">${closest.ticker} (${calcFromHigh(closest).toFixed(1)}%)</p>
-          <p class="text-xs text-slate-500 mt-1">${fmtUSD(closest.price)} vs ${fmtUSD(closest.high52)} high</p>
-        </div>
-        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-          <p class="text-xs font-medium text-slate-500">Deepest Pullback vs High</p>
-          <p class="text-2xl font-bold text-rose-600 mt-1 tabular-nums">${deepest.ticker} (${calcFromHigh(deepest).toFixed(1)}%)</p>
-          <p class="text-xs text-slate-500 mt-1">${fmtUSD(deepest.price)} vs ${fmtUSD(deepest.high52)} high</p>
-        </div>
-      `;
+    function earningsLine(s) {
+      const n = s.nextEarnings || {};
+      const bits = [];
+      if (isNum(n.eps)) bits.push(`EPS Est: ${fmtUSD(n.eps)}`);
+      if (isNum(n.revenue)) bits.push(`Rev Est: ${fmtBig(n.revenue)}`);
+      return bits.join(' • ') || 'No estimate available';
     }
 
     function renderCards() {
-      const grid = document.getElementById('cards-section');
-      grid.innerHTML = stocks.map(s => {
-        const pos = calcRangePos(s);
-        const fromHigh = calcFromHigh(s);
-        const multipleDrop = s.pe > 0 ? ((s.fwdPe - s.pe) / s.pe) * 100 : 0;
+      $('cards-section').innerHTML = stocks.map(s => {
+        const pos = rangePos(s), fh = fromHigh(s), mc = multipleChange(s), up = upside(s);
+        const a = s.analyst || {};
         return `
-          <div data-card-ticker="${s.ticker}" class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between space-y-4 cursor-pointer hover:border-brand-300 hover:shadow-md transition-all">
-            <div>
-              <div class="flex items-start justify-between gap-2">
-                <div>
-                  <div class="flex items-center gap-2">
-                    <span class="text-lg font-bold text-slate-900">${s.ticker}</span>
-                    <span class="px-2 py-0.5 text-[11px] font-medium rounded-full bg-slate-100 text-slate-600">${s.sector}</span>
-                  </div>
-                  <p class="text-xs text-slate-500">${s.name}</p>
+        <div data-card-ticker="${esc(s.ticker)}" tabindex="0" class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between space-y-4 cursor-pointer hover:border-brand-300 hover:shadow-md transition-all">
+          <div>
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-lg font-bold text-slate-900">${esc(s.ticker)}</span>
+                  <span class="px-2 py-0.5 text-[11px] font-medium rounded-full bg-slate-100 text-slate-600">${esc(s.sector)}</span>
+                  ${s.stale ? `<span class="px-2 py-0.5 text-[11px] font-medium rounded-full bg-amber-100 text-amber-800" title="Last refresh failed">stale ${esc(s.asOf || '')}</span>` : ''}
                 </div>
-                <div class="text-right">
-                  <p class="text-xl font-bold text-slate-900 tabular-nums">${fmtUSD(s.price)}</p>
-                  <p class="text-xs font-medium tabular-nums ${fromHigh >= -10 ? 'text-emerald-600' : 'text-rose-600'}">${fromHigh.toFixed(1)}% from 52W High</p>
-                </div>
+                <p class="text-xs text-slate-500">${esc(s.name)}</p>
               </div>
-
-              <!-- 52-Week Range Bar -->
-              <div class="mt-4">
-                <div class="flex justify-between text-xs text-slate-500 mb-1.5 tabular-nums">
-                  <span>52W Low: <strong class="text-slate-700">${fmtUSD(s.low52)}</strong></span>
-                  <span>52W High: <strong class="text-slate-700">${fmtUSD(s.high52)}</strong></span>
-                </div>
-                <div class="relative h-2.5 bg-slate-100 rounded-full">
-                  <div class="absolute top-0 left-0 h-2.5 bg-brand-200 rounded-full" style="width: ${pos}%"></div>
-                  <div class="absolute -top-1 w-4 h-4 rounded-full bg-brand-600 border-2 border-white shadow" style="left: calc(${pos}% - 8px)" title="${pos.toFixed(0)}% of 52-week range"></div>
-                </div>
-              </div>
-
-              <!-- P/E & Forward P/E -->
-              <div class="grid grid-cols-2 gap-3 mt-4">
-                <div class="bg-slate-50 rounded-lg p-2.5 border border-slate-100">
-                  <p class="text-[11px] font-medium text-slate-500">P/E Ratio (TTM)</p>
-                  <p class="text-base font-bold text-slate-900 tabular-nums mt-0.5">${s.pe.toFixed(2)}x</p>
-                </div>
-                <div class="bg-brand-50/60 rounded-lg p-2.5 border border-brand-100">
-                  <p class="text-[11px] font-medium text-brand-700">Forward P/E</p>
-                  <div class="flex items-baseline gap-1.5 mt-0.5">
-                    <p class="text-base font-bold text-slate-900 tabular-nums">${s.fwdPe.toFixed(2)}x</p>
-                    <span class="text-[11px] font-medium tabular-nums ${multipleDrop <= 0 ? 'text-emerald-600' : 'text-amber-600'}">${multipleDrop > 0 ? '+' : ''}${multipleDrop.toFixed(0)}%</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Next Earnings Estimate -->
-              <div class="mt-3 bg-slate-50 rounded-lg p-2.5 border border-slate-100">
-                <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Next Earnings • ${s.nextQuarter}</p>
-                <p class="text-xs font-medium text-slate-800 mt-0.5">${s.nextEarningsEst}</p>
+              <div class="text-right">
+                <p class="text-xl font-bold text-slate-900 tabular-nums">${fmtUSD(s.price)}</p>
+                <p class="text-xs font-medium tabular-nums ${isNum(fh) && fh >= -10 ? 'text-emerald-700' : 'text-rose-700'}">${isNum(fh) ? fh.toFixed(1) + '% from 52W High' : '—'}</p>
               </div>
             </div>
 
-            <!-- Footer Actions -->
-            <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-              <div class="flex items-center gap-1.5">
-                <a href="https://www.google.com/finance/quote/${s.financeSlug}" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-700 font-medium">Google Finance</a>
-                <a href="https://stockanalysis.com/stocks/${s.saSlug}/forecast/" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-700 font-medium">Estimates</a>
+            <div class="mt-4">
+              <div class="flex justify-between text-xs text-slate-500 mb-1.5 tabular-nums">
+                <span>52W Low: <strong class="text-slate-700">${fmtUSD(s.low52)}</strong></span>
+                <span>52W High: <strong class="text-slate-700">${fmtUSD(s.high52)}</strong></span>
               </div>
-              <div class="flex items-center gap-1">
-                <button type="button" data-analyze-ticker="${s.ticker}" class="px-2.5 py-1 rounded-md text-brand-700 bg-brand-50 hover:bg-brand-100 font-medium flex items-center gap-1">
-                  <i data-lucide="calculator" class="w-3.5 h-3.5"></i><span>Analyze</span>
-                </button>
-                <button type="button" data-edit-ticker="${s.ticker}" class="px-2 py-1 rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium flex items-center gap-1">
-                  <i data-lucide="pencil" class="w-3.5 h-3.5"></i><span>Edit</span>
-                </button>
-                <button type="button" data-delete-ticker="${s.ticker}" class="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50" title="Remove ${s.ticker}">
-                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                </button>
+              <div class="relative h-2.5 bg-slate-100 rounded-full">
+                ${isNum(pos) ? `<div class="absolute top-0 left-0 h-2.5 bg-brand-200 rounded-full" style="width:${pos}%"></div>
+                <div class="absolute -top-1 w-4 h-4 rounded-full bg-brand-600 border-2 border-white shadow" style="left:calc(${pos}% - 8px)" title="${pos.toFixed(0)}% of 52-week range"></div>` : ''}
               </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mt-4">
+              <div class="bg-slate-50 rounded-lg p-2.5 border border-slate-100">
+                <p class="text-[11px] font-medium text-slate-500">P/E Ratio (TTM)</p>
+                <p class="text-base font-bold text-slate-900 tabular-nums mt-0.5">${fmtX(s.pe)}</p>
+              </div>
+              <div class="bg-brand-50/60 rounded-lg p-2.5 border border-brand-100">
+                <p class="text-[11px] font-medium text-brand-700">Forward P/E</p>
+                <div class="flex items-baseline gap-1.5 mt-0.5">
+                  <p class="text-base font-bold text-slate-900 tabular-nums">${fmtX(s.fwdPe)}</p>
+                  ${isNum(mc) ? `<span class="text-[11px] font-medium tabular-nums ${mc <= 0 ? 'text-emerald-700' : 'text-amber-700'}">${fmtPct(mc, 0)}</span>` : ''}
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-3 bg-slate-50 rounded-lg p-2.5 border border-slate-100">
+              <div class="flex items-center justify-between">
+                <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Analyst Consensus</p>
+                ${ratingBadge(a.rating)}
+              </div>
+              <p class="text-xs font-medium text-slate-800 mt-1 tabular-nums">
+                ${isNum(a.targetMean) ? `Mean target ${fmtUSD(a.targetMean)} <span class="${up >= 0 ? 'text-emerald-700' : 'text-rose-700'}">(${fmtPct(up, 0)})</span>` : 'No price target available'}
+                ${isNum(a.numAnalysts) ? `<span class="text-slate-500"> • ${a.numAnalysts} analysts</span>` : ''}
+              </p>
+            </div>
+
+            <div class="mt-3 bg-slate-50 rounded-lg p-2.5 border border-slate-100">
+              <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Next Earnings • ${fmtDate(s.nextEarnings?.date)}</p>
+              <p class="text-xs font-medium text-slate-800 mt-0.5">${earningsLine(s)}</p>
             </div>
           </div>
-        `;
+
+          <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-1.5">
+              <a href="https://www.google.com/finance/quote/${encodeURIComponent(s.financeSlug || s.ticker + ':NASDAQ')}" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-700 font-medium">Google Finance</a>
+              <a href="https://stockanalysis.com/stocks/${encodeURIComponent(s.saSlug || s.ticker.toLowerCase())}/forecast/" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-700 font-medium">Estimates</a>
+            </div>
+            <button type="button" data-analyze-ticker="${esc(s.ticker)}" class="px-2.5 py-1 rounded-md text-brand-700 bg-brand-50 hover:bg-brand-100 font-medium flex items-center gap-1">
+              <i data-lucide="calculator" class="w-3.5 h-3.5"></i><span>Analyze</span>
+            </button>
+          </div>
+        </div>`;
       }).join('');
     }
 
+    const COLS = [
+      { key: 'ticker', label: 'Stock', align: 'left', val: s => s.ticker },
+      { key: 'price', label: 'Price', align: 'right', val: s => s.price },
+      { key: 'rangePos', label: '52W Pos', align: 'right', val: rangePos },
+      { key: 'pe', label: 'P/E (TTM)', align: 'right', val: s => s.pe },
+      { key: 'fwdPe', label: 'Fwd P/E', align: 'right', val: s => s.fwdPe },
+      { key: 'upside', label: 'Target Upside', align: 'right', val: upside },
+      { key: 'rating', label: 'Rating', align: 'left', val: s => s.analyst?.ratingMean },
+      { key: 'earn', label: 'Next Earnings', align: 'left', val: s => s.nextEarnings?.date }
+    ];
+
     function renderTable() {
-      const cols = [
-        { key: 'ticker', label: 'Stock', align: 'left' },
-        { key: 'price', label: 'Current Price', align: 'right' },
-        { key: 'low52', label: '52W Low', align: 'right' },
-        { key: 'high52', label: '52W High', align: 'right' },
-        { key: 'rangePos', label: '52W Pos %', align: 'right' },
-        { key: 'pe', label: 'P/E (TTM)', align: 'right' },
-        { key: 'fwdPe', label: 'Forward P/E', align: 'right' },
-        { key: 'nextQuarter', label: 'Next Earnings Estimate', align: 'left' }
-      ];
+      $('stock-thead').innerHTML = `<tr>${COLS.map(c => `
+        <th class="py-3 px-4 th-sort hover:text-slate-900 ${c.align === 'right' ? 'text-right' : 'text-left'}" data-sort="${c.key}" aria-sort="${sortState.key === c.key ? (sortState.dir === 'asc' ? 'ascending' : 'descending') : 'none'}">
+          ${c.label} ${sortState.key === c.key ? (sortState.dir === 'asc' ? '▲' : '▼') : ''}</th>`).join('')}</tr>`;
 
-      document.getElementById('mag7-thead').innerHTML = `
-        <tr>
-          ${cols.map(c => `
-            <th class="py-3 px-4 cursor-pointer hover:text-slate-900 ${c.align === 'right' ? 'text-right' : 'text-left'}" data-sort="${c.key}">
-              ${c.label} ${sortState.key === c.key ? (sortState.dir === 'asc' ? '▲' : '▼') : ''}
-            </th>
-          `).join('')}
-          <th class="py-3 px-4 text-right">Edit</th>
-        </tr>
-      `;
-
+      const col = COLS.find(c => c.key === sortState.key) || COLS[0];
+      const dir = sortState.dir === 'asc' ? 1 : -1;
       const sorted = [...stocks].sort((a, b) => {
-        const va = sortState.key === 'rangePos' ? calcRangePos(a) : a[sortState.key];
-        const vb = sortState.key === 'rangePos' ? calcRangePos(b) : b[sortState.key];
-        if (typeof va === 'string') return sortState.dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
-        return sortState.dir === 'asc' ? va - vb : vb - va;
+        const va = col.val(a), vb = col.val(b);
+        const na = va == null || (typeof va === 'number' && !isNum(va)), nb = vb == null || (typeof vb === 'number' && !isNum(vb));
+        if (na && nb) return 0; if (na) return 1; if (nb) return -1;   // empty values always last
+        return (typeof va === 'string' ? va.localeCompare(vb) : va - vb) * dir;
       });
 
-      document.getElementById('mag7-tbody').innerHTML = sorted.map(s => {
-        const pos = calcRangePos(s);
-        return `
-          <tr class="hover:bg-slate-50/80 transition-colors">
-            <td class="py-3 px-4">
-              <div class="font-bold text-slate-900">${s.ticker}</div>
-              <div class="text-xs text-slate-500">${s.name}</div>
-            </td>
-            <td class="py-3 px-4 text-right font-semibold tabular-nums">${fmtUSD(s.price)}</td>
-            <td class="py-3 px-4 text-right text-slate-600 tabular-nums">${fmtUSD(s.low52)}</td>
-            <td class="py-3 px-4 text-right text-slate-600 tabular-nums">${fmtUSD(s.high52)}</td>
-            <td class="py-3 px-4 text-right tabular-nums">
-              <span class="px-2 py-0.5 text-xs font-medium rounded-full ${pos >= 70 ? 'bg-emerald-100 text-emerald-700' : pos <= 30 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-700'}">${pos.toFixed(0)}%</span>
-            </td>
-            <td class="py-3 px-4 text-right tabular-nums text-slate-700">${s.pe.toFixed(2)}x</td>
-            <td class="py-3 px-4 text-right tabular-nums font-semibold text-brand-700">${s.fwdPe.toFixed(2)}x</td>
-            <td class="py-3 px-4">
-              <div class="text-xs font-semibold text-slate-700">${s.nextQuarter}</div>
-              <div class="text-xs text-slate-500">${s.nextEarningsEst}</div>
-            </td>
-            <td class="py-3 px-4 text-right whitespace-nowrap">
-              <button type="button" data-analyze-ticker="${s.ticker}" class="px-2 py-1 text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 rounded-md mr-1">Analyze</button>
-              <button type="button" data-edit-ticker="${s.ticker}" class="p-1.5 text-slate-500 hover:text-slate-900 rounded-md hover:bg-slate-100"><i data-lucide="pencil" class="w-4 h-4"></i></button>
-              <button type="button" data-delete-ticker="${s.ticker}" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-md hover:bg-rose-50"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-            </td>
-          </tr>
-        `;
+      $('stock-tbody').innerHTML = sorted.map(s => {
+        const pos = rangePos(s), up = upside(s);
+        return `<tr class="hover:bg-slate-50/80 transition-colors cursor-pointer" data-card-ticker="${esc(s.ticker)}">
+          <td class="py-3 px-4"><div class="font-bold text-slate-900">${esc(s.ticker)}${s.stale ? ' <span class="text-[10px] font-medium text-amber-700">stale</span>' : ''}</div><div class="text-xs text-slate-500">${esc(s.name)}</div></td>
+          <td class="py-3 px-4 text-right font-semibold tabular-nums">${fmtUSD(s.price)}</td>
+          <td class="py-3 px-4 text-right tabular-nums">${isNum(pos) ? `<span class="px-2 py-0.5 text-xs font-medium rounded-full ${pos >= 70 ? 'bg-emerald-100 text-emerald-800' : pos <= 30 ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700'}">${pos.toFixed(0)}%</span>` : '—'}</td>
+          <td class="py-3 px-4 text-right tabular-nums text-slate-700">${fmtX(s.pe)}</td>
+          <td class="py-3 px-4 text-right tabular-nums font-semibold text-brand-700">${fmtX(s.fwdPe)}</td>
+          <td class="py-3 px-4 text-right tabular-nums ${isNum(up) ? (up >= 0 ? 'text-emerald-700' : 'text-rose-700') : ''}">${fmtPct(up, 1)}</td>
+          <td class="py-3 px-4">${ratingBadge(s.analyst?.rating)}</td>
+          <td class="py-3 px-4"><div class="text-xs font-semibold text-slate-700">${fmtDate(s.nextEarnings?.date)}</div><div class="text-xs text-slate-500">${earningsLine(s)}</div></td>
+        </tr>`;
       }).join('');
     }
 
     function renderCharts() {
-      const includeTsla = document.getElementById('toggle-include-tsla').checked;
-      const peList = includeTsla ? stocks : stocks.filter(s => s.ticker !== 'TSLA');
+      const includeOutliers = $('toggle-outliers').checked;
+      const list = includeOutliers ? stocks : stocks.filter(s => !(s.pe > OUTLIER_PE || s.fwdPe > OUTLIER_PE));
+      const hidden = stocks.length - list.length;
 
-      if (charts.pe) charts.pe.destroy();
-      charts.pe = new Chart(document.getElementById('chart-pe-compare'), {
+      killChart('pe');
+      charts.pe = new Chart($('chart-pe-compare'), {
         type: 'bar',
         data: {
-          labels: peList.map(s => s.ticker),
+          labels: list.map(s => s.ticker),
           datasets: [
-            { label: 'P/E (TTM)', data: peList.map(s => s.pe), backgroundColor: '#cbd5e1', borderRadius: 4 },
-            { label: 'Forward P/E', data: peList.map(s => s.fwdPe), backgroundColor: '#4f46e5', borderRadius: 4 }
+            { label: 'P/E (TTM)', data: list.map(s => isNum(s.pe) ? s.pe : null), backgroundColor: C.blue, borderRadius: 4, maxBarThickness: 22 },
+            { label: 'Forward P/E', data: list.map(s => isNum(s.fwdPe) ? s.fwdPe : null), backgroundColor: C.orange, borderRadius: 4, maxBarThickness: 22 }
           ]
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: { ticks: { callback: v => v + 'x' }, grid: { color: '#f1f5f9' } },
-            x: { grid: { display: false } }
+        options: baseOptions({
+          plugins: {
+            legend: { position: 'top', align: 'end', labels: { boxWidth: 10, font: { size: 11 } } },
+            subtitle: { display: hidden > 0, text: `${hidden} outlier${hidden > 1 ? 's' : ''} hidden (P/E > ${OUTLIER_PE}x)`, align: 'start', color: C.muted, font: { size: 11 } },
+            tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${isNum(ctx.raw) ? ctx.raw.toFixed(2) + 'x' : 'n/a'}` } }
           },
-          plugins: { legend: { position: 'top', align: 'end', labels: { boxWidth: 10, font: { size: 11 } } } }
-        }
+          scales: { x: { grid: { display: false }, border: { color: C.axis } }, y: { grid: { color: C.grid }, border: { display: false }, ticks: { callback: v => v + 'x' } } }
+        })
       });
 
-      if (charts.range) charts.range.destroy();
-      charts.range = new Chart(document.getElementById('chart-range-pos'), {
+      const rp = stocks.filter(s => isNum(rangePos(s)));
+      killChart('range');
+      charts.range = new Chart($('chart-range-pos'), {
         type: 'bar',
-        data: {
-          labels: stocks.map(s => s.ticker),
-          datasets: [{
-            label: '52W Range Position %',
-            data: stocks.map(s => +calcRangePos(s).toFixed(1)),
-            backgroundColor: stocks.map(s => calcRangePos(s) >= 65 ? '#10b981' : calcRangePos(s) <= 30 ? '#f43f5e' : '#0ea5e9'),
-            borderRadius: 4
-          }]
-        },
-        options: {
+        data: { labels: rp.map(s => s.ticker), datasets: [{ label: '52W range position', data: rp.map(s => +rangePos(s).toFixed(1)), backgroundColor: C.blue, borderRadius: 4, maxBarThickness: 20 }] },
+        options: baseOptions({
           indexAxis: 'y',
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: { min: 0, max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#f1f5f9' } },
-            y: { grid: { display: false } }
-          },
-          plugins: { legend: { display: false } }
-        }
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.raw}% of 52-week range` } } },
+          scales: { x: { min: 0, max: 100, grid: { color: C.grid }, border: { display: false }, ticks: { callback: v => v + '%' } }, y: { grid: { display: false }, border: { color: C.axis } } }
+        })
       });
     }
 
-    // ==================== VIEW TOGGLES & EVENTS ====================
-    document.getElementById('view-cards-btn').addEventListener('click', () => {
-      viewMode = 'cards';
-      document.getElementById('cards-section').classList.remove('hidden');
-      document.getElementById('table-section').classList.add('hidden');
-      document.getElementById('view-cards-btn').className = 'px-2.5 py-1 rounded-md bg-white text-slate-900 shadow-xs';
-      document.getElementById('view-table-btn').className = 'px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900';
-    });
+    // ============================ view toggle & global events ============================
+    function setView(mode) {
+      viewMode = mode;
+      $('cards-section').classList.toggle('hidden', mode !== 'cards');
+      $('table-section').classList.toggle('hidden', mode !== 'table');
+      $('view-cards-btn').className = 'px-2.5 py-1 rounded-md ' + (mode === 'cards' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900');
+      $('view-table-btn').className = 'px-2.5 py-1 rounded-md ' + (mode === 'table' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900');
+    }
+    $('view-cards-btn').addEventListener('click', () => setView('cards'));
+    $('view-table-btn').addEventListener('click', () => setView('table'));
+    $('toggle-outliers').addEventListener('change', renderCharts);
 
-    document.getElementById('view-table-btn').addEventListener('click', () => {
-      viewMode = 'table';
-      document.getElementById('table-section').classList.remove('hidden');
-      document.getElementById('cards-section').classList.add('hidden');
-      document.getElementById('view-table-btn').className = 'px-2.5 py-1 rounded-md bg-white text-slate-900 shadow-xs';
-      document.getElementById('view-cards-btn').className = 'px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900';
-    });
-
-    document.getElementById('toggle-include-tsla').addEventListener('change', renderCharts);
-
-    document.getElementById('mag7-thead').addEventListener('click', (e) => {
+    $('stock-thead').addEventListener('click', (e) => {
       const th = e.target.closest('th[data-sort]');
       if (!th) return;
       const k = th.dataset.sort;
       if (sortState.key === k) sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
-      else { sortState.key = k; sortState.dir = 'desc'; }
+      else { sortState.key = k; sortState.dir = k === 'ticker' ? 'asc' : 'desc'; }
       renderTable();
-      lucide.createIcons();
     });
 
     document.addEventListener('click', (e) => {
-      const analyzeBtn = e.target.closest('[data-analyze-ticker]');
-      if (analyzeBtn) {
-        openAnalyzeModal(analyzeBtn.dataset.analyzeTicker);
-        return;
-      }
-      const cardEl = e.target.closest('[data-card-ticker]');
-      if (cardEl && !e.target.closest('a, button')) {
-        openAnalyzeModal(cardEl.dataset.cardTicker);
-        return;
-      }
-      const editBtn = e.target.closest('[data-edit-ticker]');
-      if (editBtn) {
-        const s = stocks.find(x => x.ticker === editBtn.dataset.editTicker);
-        if (!s) return;
-        document.getElementById('edit-modal-title').textContent = `Update ${s.ticker} (${s.name})`;
-        document.getElementById('edit-ticker').value = s.ticker;
-        document.getElementById('edit-price').value = s.price;
-        document.getElementById('edit-low').value = s.low52;
-        document.getElementById('edit-high').value = s.high52;
-        document.getElementById('edit-pe').value = s.pe;
-        document.getElementById('edit-fwdpe').value = s.fwdPe;
-        document.getElementById('edit-nextq').value = s.nextQuarter;
-        document.getElementById('edit-nextest').value = s.nextEarningsEst;
-        document.getElementById('modal-edit-stock').classList.remove('hidden');
-      }
-      const delBtn = e.target.closest('[data-delete-ticker]');
-      if (delBtn) {
-        const t = delBtn.dataset.deleteTicker;
-        if (stocks.length <= 1) { showToast('Keep at least 1 stock on the dashboard', 'error'); return; }
-        stocks = stocks.filter(x => x.ticker !== t);
-        saveStocks();
-        renderAll();
-        populatePeSelect();
-        showToast(`Removed ${t}`);
-      }
-      const closeBtn = e.target.closest('[data-close-modal]');
-      if (closeBtn) {
-        document.getElementById(closeBtn.dataset.closeModal).classList.add('hidden');
-      }
+      const btn = e.target.closest('[data-analyze-ticker]');
+      if (btn) { openModal(btn.dataset.analyzeTicker); return; }
+      const card = e.target.closest('[data-card-ticker]');
+      if (card && !e.target.closest('a, button')) openModal(card.dataset.cardTicker);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-card-ticker]')) { e.preventDefault(); openModal(e.target.dataset.cardTicker); }
     });
 
-    document.getElementById('form-edit-stock').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const t = document.getElementById('edit-ticker').value;
-      const idx = stocks.findIndex(x => x.ticker === t);
-      if (idx === -1) return;
-      stocks[idx] = {
-        ...stocks[idx],
-        price: parseFloat(document.getElementById('edit-price').value),
-        low52: parseFloat(document.getElementById('edit-low').value),
-        high52: parseFloat(document.getElementById('edit-high').value),
-        pe: parseFloat(document.getElementById('edit-pe').value),
-        fwdPe: parseFloat(document.getElementById('edit-fwdpe').value),
-        nextQuarter: document.getElementById('edit-nextq').value.trim(),
-        nextEarningsEst: document.getElementById('edit-nextest').value.trim()
-      };
-      saveStocks();
-      document.getElementById('modal-edit-stock').classList.add('hidden');
-      renderAll();
-      showToast(`Updated ${t}`, 'success');
-    });
-
-    document.getElementById('btn-reset-data').addEventListener('click', () => {
-      stocks = structuredClone(DEFAULT_STOCKS);
-      saveStocks();
-      renderAll();
-      showToast('Reset to November 2026 baseline');
-    });
-
-    // ==================== GITHUB GIST SYNC ====================
-    function loadGistConfig() {
-      try {
-        const raw = localStorage.getItem(GIST_CONFIG_KEY);
-        if (raw) return JSON.parse(raw);
-      } catch (e) { /* ignore */ }
-      return { token: '', gistId: '', autoSync: false, lastSynced: '' };
-    }
-
-    function saveGistConfig(cfg) {
-      try { localStorage.setItem(GIST_CONFIG_KEY, JSON.stringify(cfg)); } catch (e) { /* ignore */ }
-      updateGistStatusUI();
-    }
-
-    function updateGistStatusUI() {
-      const cfg = loadGistConfig();
-      const dot = document.getElementById('gist-status-dot');
-      const txt = document.getElementById('gist-sync-status-text');
-      if (dot) dot.className = 'w-2 h-2 rounded-full ' + (cfg.token && cfg.gistId ? 'bg-emerald-500' : cfg.token ? 'bg-amber-400' : 'bg-slate-400');
-      if (txt) txt.textContent = cfg.token && cfg.gistId ? `Connected • Last synced: ${cfg.lastSynced || 'ready'}` : cfg.token ? 'Token saved • Click Push to create Gist' : 'Not connected';
-    }
-
-    async function pushToGist(silent = false) {
-      const token = document.getElementById('gist-token-input').value.trim() || loadGistConfig().token;
-      let gistId = document.getElementById('gist-id-input').value.trim() || loadGistConfig().gistId;
-      const autoSync = document.getElementById('gist-autosync-input').checked;
-      if (!token) { if (!silent) showToast('Enter a GitHub token first', 'error'); return; }
-      try {
-        const url = gistId ? `https://api.github.com/gists/${encodeURIComponent(gistId)}` : 'https://api.github.com/gists';
-        const res = await fetch(url, {
-          method: gistId ? 'PATCH' : 'POST',
-          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
-          body: JSON.stringify({ description: 'Magnificent 7 Dashboard Data', public: false, files: { [GIST_FILENAME]: { content: JSON.stringify(stocks, null, 2) } } })
-        });
-        if (!res.ok) throw new Error(`GitHub API error (${res.status})`);
-        const data = await res.json();
-        gistId = data.id;
-        document.getElementById('gist-id-input').value = gistId;
-        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        saveGistConfig({ token, gistId, autoSync, lastSynced: now });
-        if (!silent) showToast('Pushed to private GitHub Gist', 'success');
-      } catch (err) {
-        if (!silent) showToast(err.message || 'Push failed', 'error');
-      }
-    }
-
-    async function pullFromGist() {
-      const token = document.getElementById('gist-token-input').value.trim() || loadGistConfig().token;
-      const gistId = document.getElementById('gist-id-input').value.trim() || loadGistConfig().gistId;
-      const autoSync = document.getElementById('gist-autosync-input').checked;
-      if (!token || !gistId) { showToast('Enter token and Gist ID', 'error'); return; }
-      try {
-        const res = await fetch(`https://api.github.com/gists/${encodeURIComponent(gistId)}`, {
-          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }
-        });
-        if (!res.ok) throw new Error(`GitHub API error (${res.status})`);
-        const data = await res.json();
-        const fileObj = data.files && data.files[GIST_FILENAME];
-        if (!fileObj || !fileObj.content) throw new Error(`${GIST_FILENAME} not found in Gist`);
-        const parsed = JSON.parse(fileObj.content);
-        if (!Array.isArray(parsed)) throw new Error('Invalid data format');
-        stocks = parsed;
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(stocks)); } catch (e) { /* ignore */ }
-        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        saveGistConfig({ token, gistId, autoSync, lastSynced: now });
-        renderAll();
-        document.getElementById('modal-gist-sync').classList.add('hidden');
-        showToast('Pulled latest data from Gist', 'success');
-      } catch (err) {
-        showToast(err.message || 'Pull failed', 'error');
-      }
-    }
-
-    document.getElementById('btn-gist-sync').addEventListener('click', () => {
-      const cfg = loadGistConfig();
-      document.getElementById('gist-token-input').value = cfg.token || '';
-      document.getElementById('gist-id-input').value = cfg.gistId || '';
-      document.getElementById('gist-autosync-input').checked = !!cfg.autoSync;
-      updateGistStatusUI();
-      document.getElementById('modal-gist-sync').classList.remove('hidden');
-    });
-    document.getElementById('gist-autosync-input').addEventListener('change', (e) => {
-      const cfg = loadGistConfig(); cfg.autoSync = e.target.checked; saveGistConfig(cfg);
-    });
-    document.getElementById('btn-gist-push').addEventListener('click', () => pushToGist(false));
-    document.getElementById('btn-gist-pull').addEventListener('click', pullFromGist);
-    document.getElementById('btn-gist-disconnect').addEventListener('click', () => {
-      saveGistConfig({ token: '', gistId: '', autoSync: false, lastSynced: '' });
-      document.getElementById('gist-token-input').value = '';
-      document.getElementById('gist-id-input').value = '';
-      document.getElementById('gist-autosync-input').checked = false;
-      showToast('Disconnected GitHub Gist sync');
-    });
-
-    // ==================== FINNHUB LIVE QUOTES (FREE TIER) ====================
-    const FINNHUB_KEY_STORAGE = 'mag7_finnhub_key_v1';
-    const API_PROVIDER_STORAGE = 'mag7_api_provider_v1';
-
-    function cleanFinnhubKey(k) {
-      return (k || '').replace(/^['"\s]+|['"\s]+$/g, '').trim();
-    }
-
-    function loadFinnhubKey() {
-      try { return cleanFinnhubKey(localStorage.getItem(FINNHUB_KEY_STORAGE) || ''); } catch (e) { return ''; }
-    }
-
-    function saveFinnhubKey(k) {
-      try { localStorage.setItem(FINNHUB_KEY_STORAGE, cleanFinnhubKey(k)); } catch (e) { /* ignore */ }
-    }
-
-    function loadApiProvider() {
-      try { return localStorage.getItem(API_PROVIDER_STORAGE) || 'finnhub'; } catch (e) { return 'finnhub'; }
-    }
-
-    function saveApiProvider(p) {
-      try { localStorage.setItem(API_PROVIDER_STORAGE, p); } catch (e) { /* ignore */ }
-    }
-
-    async function fetchFinnhubJson(url) {
-      let res;
-      try {
-        res = await fetch(url);
-      } catch (netErr) {
-        throw new Error('Request blocked in this preview — download the file and open in your browser or Netlify Drop');
-      }
-      let data = {};
-      try { data = await res.json(); } catch (e) { /* ignore */ }
-      if (res.status === 429) throw new Error('Finnhub rate limit reached — try again in a minute');
-      if (res.status === 401) throw new Error(data.error || 'Finnhub rejected the API key (401) — verify your email & copy the API Key (not Secret)');
-      return { ok: res.ok, status: res.status, data };
-    }
-
-    async function refreshFromFinnhub() {
-      const key = loadFinnhubKey();
-      const provider = loadApiProvider();
-      if (!key) {
-        document.getElementById('api-provider-select').value = provider;
-        document.getElementById('finnhub-key-input').value = '';
-        document.getElementById('modal-finnhub').classList.remove('hidden');
-        return;
-      }
-
-      const btn = document.getElementById('btn-finnhub-refresh');
-      btn.disabled = true;
-      btn.classList.add('opacity-70');
-      showToast(`Fetching live quotes from ${provider === 'fmp' ? 'FMP' : 'Finnhub'}...`);
-
-      let updatedCount = 0;
-      try {
-        for (let idx = 0; idx < stocks.length; idx++) {
-          const s = stocks[idx];
-          let changed = false;
-          if (provider === 'fmp') {
-            const [qResp, rResp] = await Promise.all([
-              fetchFinnhubJson(`https://financialmodelingprep.com/stable/quote?symbol=${encodeURIComponent(s.ticker)}&apikey=${encodeURIComponent(key)}`),
-              fetchFinnhubJson(`https://financialmodelingprep.com/stable/ratios-ttm?symbol=${encodeURIComponent(s.ticker)}&apikey=${encodeURIComponent(key)}`)
-            ]);
-            const qArr = Array.isArray(qResp.data) ? qResp.data[0] : qResp.data;
-            const rArr = Array.isArray(rResp.data) ? rResp.data[0] : rResp.data;
-            if (qResp.status === 401 || qResp.status === 403) throw new Error((qResp.data && qResp.data['Error Message']) || 'FMP rejected the API key');
-            if (qArr && Number.isFinite(qArr.price) && qArr.price > 0) { stocks[idx].price = +qArr.price.toFixed(2); changed = true; }
-            if (qArr && Number.isFinite(qArr.yearHigh) && qArr.yearHigh > 0) { stocks[idx].high52 = +qArr.yearHigh.toFixed(2); changed = true; }
-            if (qArr && Number.isFinite(qArr.yearLow) && qArr.yearLow > 0) { stocks[idx].low52 = +qArr.yearLow.toFixed(2); changed = true; }
-            const peVal = (qArr && qArr.pe) || (rArr && rArr.priceToEarningsRatioTTM);
-            if (Number.isFinite(peVal) && peVal > 0) { stocks[idx].pe = +peVal.toFixed(2); changed = true; }
-          } else {
-            const [qResp, mResp] = await Promise.all([
-              fetchFinnhubJson(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(s.ticker)}&token=${encodeURIComponent(key)}`),
-              fetchFinnhubJson(`https://finnhub.io/api/v1/stock/metric?symbol=${encodeURIComponent(s.ticker)}&metric=all&token=${encodeURIComponent(key)}`)
-            ]);
-            if (!qResp.ok && qResp.status === 403) {
-              throw new Error(qResp.data.error || 'Finnhub access denied (403) — check your API Key');
-            }
-            const qData = qResp.ok ? qResp.data : {};
-            const metrics = (mResp.ok && mResp.data && mResp.data.metric) ? mResp.data.metric : {};
-            if (Number.isFinite(qData.c) && qData.c > 0) { stocks[idx].price = +qData.c.toFixed(2); changed = true; }
-            if (Number.isFinite(metrics['52WeekHigh']) && metrics['52WeekHigh'] > 0) { stocks[idx].high52 = +metrics['52WeekHigh'].toFixed(2); changed = true; }
-            if (Number.isFinite(metrics['52WeekLow']) && metrics['52WeekLow'] > 0) { stocks[idx].low52 = +metrics['52WeekLow'].toFixed(2); changed = true; }
-            const peVal = metrics.peTTM || metrics.peNormalizedAnnual;
-            if (Number.isFinite(peVal) && peVal > 0) { stocks[idx].pe = +peVal.toFixed(2); changed = true; }
-          }
-          if (changed) updatedCount++;
-        }
-
-        saveStocks();
-        renderAll();
-        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const statusEl = document.getElementById('finnhub-last-sync');
-        if (statusEl) statusEl.textContent = `Last live refresh (${provider.toUpperCase()}): ${now}`;
-        showToast(`Updated live data for ${updatedCount}/${stocks.length} stocks`, 'success');
-      } catch (err) {
-        showToast(err.message || 'Failed to fetch live data', 'error');
-      } finally {
-        btn.disabled = false;
-        btn.classList.remove('opacity-70');
-      }
-    }
-
-    document.getElementById('btn-finnhub-refresh').addEventListener('click', refreshFromFinnhub);
-    document.getElementById('btn-finnhub-settings').addEventListener('click', () => {
-      document.getElementById('api-provider-select').value = loadApiProvider();
-      document.getElementById('finnhub-key-input').value = loadFinnhubKey();
-      document.getElementById('modal-finnhub').classList.remove('hidden');
-    });
-    document.getElementById('form-finnhub').addEventListener('submit', (e) => {
-      e.preventDefault();
-      saveApiProvider(document.getElementById('api-provider-select').value);
-      const k = document.getElementById('finnhub-key-input').value.trim();
-      saveFinnhubKey(k);
-      document.getElementById('modal-finnhub').classList.add('hidden');
-      if (k) refreshFromFinnhub();
-    });
-    document.getElementById('btn-finnhub-clear').addEventListener('click', () => {
-      saveFinnhubKey('');
-      document.getElementById('finnhub-key-input').value = '';
-      showToast('Cleared Finnhub API key');
-    });
-
-    // ==================== P/E FORECAST TAB ====================
-    function populatePeSelect() {
-      const sel = document.getElementById('pe-stock-select');
-      const prev = sel.value;
-      sel.innerHTML = stocks.map(s => `<option value="${s.ticker}">${s.ticker} — ${s.name}</option>`).join('');
-      if (prev && stocks.some(s => s.ticker === prev)) sel.value = prev;
-      else if (stocks.length) loadTickerIntoForecast(stocks[0].ticker);
-    }
-
-    function loadTickerIntoForecast(ticker) {
+    // ============================ modal ============================
+    function openModal(ticker) {
       const s = stocks.find(x => x.ticker === ticker);
       if (!s) return;
-      document.getElementById('pe-current-price').value = s.price;
-      const impliedEps = s.pe > 0 ? +(s.price / s.pe).toFixed(2) : 5;
-      document.getElementById('pe-current-eps').value = impliedEps;
-      document.getElementById('pe-forward-ratio-badge').textContent = s.fwdPe ? `${s.fwdPe.toFixed(2)}x` : '—';
-      const basePe = s.fwdPe > 0 ? s.fwdPe : s.pe;
-      document.getElementById('pe-bear').value = Math.max(5, Math.round(basePe * 0.75 * 2) / 2);
-      document.getElementById('pe-base').value = Math.round(basePe * 2) / 2;
-      document.getElementById('pe-bull').value = Math.min(250, Math.round(basePe * 1.25 * 2) / 2);
-      renderPeForecast();
+      $('stock-select').innerHTML = stocks.map(x => `<option value="${esc(x.ticker)}">${esc(x.ticker)} — ${esc(x.name)}</option>`).join('');
+      $('stock-select').value = ticker;
+      $('modal-analyze').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      selectStock(ticker);
+      lucide.createIcons();
+    }
+    function closeModal() { $('modal-analyze').classList.add('hidden'); document.body.style.overflow = ''; }
+    $('btn-close-modal').addEventListener('click', closeModal);
+    $('modal-analyze').addEventListener('click', (e) => { if (e.target === $('modal-analyze')) closeModal(); });
+    $('stock-select').addEventListener('change', (e) => selectStock(e.target.value));
+
+    function selectStock(ticker) {
+      selected = stocks.find(x => x.ticker === ticker);
+      if (!selected) return;
+      $('analyze-title').textContent = `${selected.ticker} — ${selected.name}`;
+      $('analyze-sub').textContent = [selected.sector, selected.industry, isNum(selected.marketCap) ? `Mkt cap ${fmtBig(selected.marketCap)}` : null, isNum(selected.peg) ? `PEG ${selected.peg.toFixed(2)}` : null].filter(Boolean).join(' • ');
+      loadTickerIntoForecast(selected);
+      showTab(activeTab);
+    }
+
+    $('tab-bar').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-tab]');
+      if (b) showTab(b.dataset.tab);
+    });
+
+    function showTab(name) {
+      activeTab = name;
+      document.querySelectorAll('.tab-btn').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
+      ['valuation', 'financials', 'estimates', 'analysts', 'history'].forEach(t => $('tab-' + t).classList.toggle('hidden', t !== name));
+      if (!selected) return;
+      ({ valuation: renderPeForecast, financials: renderFinancials, estimates: renderEstimates, analysts: renderAnalysts, history: renderHistory })[name]();
+    }
+
+    // ---------------- Financials ----------------
+    function renderFinancials() {
+      const s = selected, rows = s.financials || [];
+      const el = $('tab-financials');
+      killChart('fin');
+      if (!rows.length) { el.innerHTML = '<p class="text-sm text-slate-500">No annual financials available for this ticker.</p>'; return; }
+      const yoy = (i, k) => (i > 0 && isNum(rows[i][k]) && isNum(rows[i - 1][k]) && rows[i - 1][k] > 0) ? (rows[i][k] / rows[i - 1][k] - 1) * 100 : null;
+      const margin = (r, k) => (isNum(r[k]) && isNum(r.revenue) && r.revenue > 0) ? r[k] / r.revenue * 100 : null;
+      const line = (label, fn, bold) => `<tr class="${bold ? 'font-semibold' : ''}"><td class="py-2 px-3 text-left text-slate-700 bg-slate-50/60">${label}</td>${rows.map((r, i) => `<td class="py-2 px-3 tabular-nums">${fn(r, i)}</td>`).join('')}</tr>`;
+      const pct = (v) => isNum(v) ? `<span class="${v >= 0 ? 'text-emerald-700' : 'text-rose-700'}">${fmtPct(v, 1)}</span>` : '—';
+      el.innerHTML = `
+        <div>
+          <h4 class="text-sm font-semibold text-slate-900">Annual financials (last ${rows.length} fiscal years)</h4>
+          <p class="text-xs text-slate-500">From company filings via Yahoo Finance. Estimates for coming years are on the Estimates tab.</p>
+        </div>
+        <div class="overflow-x-auto custom-scrollbar"><table class="w-full text-right text-xs sm:text-sm border-collapse bg-white border border-slate-200 rounded-lg">
+          <thead class="bg-slate-50 text-slate-600"><tr><th class="py-2 px-3 text-left">Fiscal year</th>${rows.map(r => `<th class="py-2 px-3">${esc(r.year)}</th>`).join('')}</tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            ${line('Revenue', r => fmtBig(r.revenue), true)}
+            ${line('&nbsp;&nbsp;YoY growth', (r, i) => pct(yoy(i, 'revenue')))}
+            ${line('Gross profit', r => fmtBig(r.grossProfit))}
+            ${line('Operating income', r => fmtBig(r.operatingIncome))}
+            ${line('Net income', r => fmtBig(r.netIncome), true)}
+            ${line('&nbsp;&nbsp;Net margin', r => { const m = margin(r, 'netIncome'); return isNum(m) ? m.toFixed(1) + '%' : '—'; })}
+            ${line('Diluted EPS', r => fmtUSD(r.eps))}
+            ${line('Free cash flow', r => fmtBig(r.fcf))}
+          </tbody></table></div>
+        <div class="bg-white rounded-xl border border-slate-200 p-4">
+          <div class="relative h-64"><canvas id="chart-fin"></canvas></div>
+        </div>`;
+      const b = (k) => rows.map(r => isNum(r[k]) ? +(r[k] / 1e9).toFixed(2) : null);
+      charts.fin = new Chart($('chart-fin'), {
+        type: 'bar',
+        data: {
+          labels: rows.map(r => r.year),
+          datasets: [
+            { label: 'Revenue', data: b('revenue'), backgroundColor: C.blue, borderRadius: 4, maxBarThickness: 22 },
+            { label: 'Net income', data: b('netIncome'), backgroundColor: C.orange, borderRadius: 4, maxBarThickness: 22 },
+            { label: 'Free cash flow', data: b('fcf'), backgroundColor: C.aqua, borderRadius: 4, maxBarThickness: 22 }
+          ]
+        },
+        options: baseOptions({
+          plugins: { legend: { position: 'top', align: 'end', labels: { boxWidth: 10, font: { size: 11 } } }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${isNum(ctx.raw) ? '$' + ctx.raw.toFixed(2) + 'B' : 'n/a'}` } } },
+          scales: { x: { grid: { display: false }, border: { color: C.axis } }, y: { grid: { color: C.grid }, border: { display: false }, ticks: { callback: v => '$' + v + 'B' } } }
+        })
+      });
+    }
+
+    // ---------------- Estimates ----------------
+    function renderEstimates() {
+      const s = selected, est = s.estimates || {};
+      const table = (title, rows, f) => !rows || !rows.length ? `<p class="text-sm text-slate-500">No ${title.toLowerCase()} available.</p>` : `
+        <div>
+          <h4 class="text-sm font-semibold text-slate-900 mb-2">${title}</h4>
+          <div class="overflow-x-auto custom-scrollbar"><table class="w-full text-right text-xs sm:text-sm border-collapse bg-white border border-slate-200 rounded-lg">
+            <thead class="bg-slate-50 text-slate-600"><tr><th class="py-2 px-3 text-left">Period</th><th class="py-2 px-3">Consensus</th><th class="py-2 px-3">Low</th><th class="py-2 px-3">High</th><th class="py-2 px-3">Year ago</th><th class="py-2 px-3">Growth</th><th class="py-2 px-3">Analysts</th></tr></thead>
+            <tbody class="divide-y divide-slate-100">${rows.map(r => `<tr>
+              <td class="py-2 px-3 text-left font-medium text-slate-700">${esc(r.label)}</td>
+              <td class="py-2 px-3 tabular-nums font-semibold">${f(r.avg)}</td><td class="py-2 px-3 tabular-nums">${f(r.low)}</td><td class="py-2 px-3 tabular-nums">${f(r.high)}</td>
+              <td class="py-2 px-3 tabular-nums text-slate-600">${f(r.yearAgo)}</td>
+              <td class="py-2 px-3 tabular-nums">${isNum(r.growth) ? `<span class="${r.growth >= 0 ? 'text-emerald-700' : 'text-rose-700'}">${fmtPct(r.growth * 100, 1)}</span>` : '—'}</td>
+              <td class="py-2 px-3 tabular-nums text-slate-600">${isNum(r.analysts) ? r.analysts : '—'}</td></tr>`).join('')}</tbody></table></div>
+        </div>`;
+      $('tab-estimates').innerHTML = `
+        <div>
+          <h4 class="text-sm font-semibold text-slate-900">Forward estimates</h4>
+          <p class="text-xs text-slate-500">Analyst consensus (average of covering analysts), not company guidance. Forward EPS: ${fmtUSD(s.forwardEps)} • Trailing EPS: ${fmtUSD(s.trailingEps)} • Next earnings: ${fmtDate(s.nextEarnings?.date)}</p>
+        </div>
+        ${table('EPS estimates', est.earnings, fmtUSD)}
+        ${table('Revenue estimates', est.revenue, fmtBig)}`;
+    }
+
+    // ---------------- Analysts ----------------
+    const BREAKDOWN = [
+      ['strongBuy', 'Strong Buy', '#1c5cab'], ['buy', 'Buy', '#6da7ec'], ['hold', 'Hold', '#c3c2b7'],
+      ['sell', 'Sell', '#f1a5a4'], ['strongSell', 'Strong Sell', '#e34948']
+    ];
+    function renderAnalysts() {
+      const s = selected, a = s.analyst || {};
+      const up = upside(s), bd = a.breakdown;
+      const total = bd ? BREAKDOWN.reduce((t, [k]) => t + (bd[k] || 0), 0) : 0;
+
+      let targetViz = '<p class="text-sm text-slate-500">No price targets available.</p>';
+      if (isNum(a.targetLow) && isNum(a.targetHigh) && isNum(s.price)) {
+        const lo = Math.min(a.targetLow, s.price) * 0.97, hi = Math.max(a.targetHigh, s.price) * 1.03;
+        const p = (v) => clamp((v - lo) / (hi - lo) * 100, 0, 100);
+        targetViz = `
+          <div class="relative h-12 mt-2" role="img" aria-label="Price target range ${fmtUSD(a.targetLow)} to ${fmtUSD(a.targetHigh)}, mean ${fmtUSD(a.targetMean)}, current price ${fmtUSD(s.price)}">
+            <div class="absolute top-5 left-0 right-0 h-1.5 bg-slate-100 rounded-full"></div>
+            <div class="absolute top-5 h-1.5 bg-blue-200 rounded-full" style="left:${p(a.targetLow)}%;width:${p(a.targetHigh) - p(a.targetLow)}%"></div>
+            ${isNum(a.targetMean) ? `<div class="absolute top-3.5 w-3.5 h-3.5 rounded-full border-2 border-white shadow" style="left:calc(${p(a.targetMean)}% - 7px);background:${C.blue}" title="Mean target"></div>` : ''}
+            <div class="absolute top-2 w-0.5 h-8 bg-slate-900" style="left:${p(s.price)}%" title="Current price"></div>
+            <span class="absolute top-0 text-[11px] font-semibold text-slate-900 -translate-x-1/2 whitespace-nowrap" style="left:${clamp(p(s.price), 6, 94)}%">Now ${fmtUSD(s.price)}</span>
+          </div>
+          <div class="flex justify-between text-xs text-slate-600 tabular-nums">
+            <span>Low <strong class="text-slate-900">${fmtUSD(a.targetLow)}</strong></span>
+            <span>Mean <strong class="text-slate-900">${fmtUSD(a.targetMean)}</strong> <span class="${up >= 0 ? 'text-emerald-700' : 'text-rose-700'}">(${fmtPct(up, 1)})</span></span>
+            <span>High <strong class="text-slate-900">${fmtUSD(a.targetHigh)}</strong></span>
+          </div>`;
+      }
+
+      const breakdownViz = !total ? '<p class="text-sm text-slate-500">No rating breakdown available.</p>' : `
+        <div class="flex gap-0.5 h-3 rounded-full overflow-hidden" role="img" aria-label="Analyst ratings: ${BREAKDOWN.map(([k, l]) => `${l} ${bd[k] || 0}`).join(', ')}">
+          ${BREAKDOWN.filter(([k]) => bd[k] > 0).map(([k, l, c]) => `<div style="flex:${bd[k]};background:${c}" title="${l}: ${bd[k]}"></div>`).join('')}
+        </div>
+        <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-slate-600">
+          ${BREAKDOWN.map(([k, l, c]) => `<span class="flex items-center gap-1.5"><span class="inline-block w-2.5 h-2.5 rounded-sm" style="background:${c}"></span>${l} <strong class="text-slate-900 tabular-nums">${bd[k] || 0}</strong></span>`).join('')}
+        </div>`;
+
+      const actions = (a.recent || []).length ? `
+        <div class="overflow-x-auto custom-scrollbar"><table class="w-full text-xs sm:text-sm border-collapse bg-white border border-slate-200 rounded-lg">
+          <thead class="bg-slate-50 text-slate-600"><tr><th class="py-2 px-3 text-left">Date</th><th class="py-2 px-3 text-left">Firm</th><th class="py-2 px-3 text-left">Action</th><th class="py-2 px-3 text-left">Rating</th><th class="py-2 px-3 text-right">Price target</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">${a.recent.map(r => `<tr>
+            <td class="py-2 px-3 whitespace-nowrap text-slate-600">${fmtDate(r.date)}</td><td class="py-2 px-3 font-medium text-slate-800">${esc(r.firm)}</td>
+            <td class="py-2 px-3 text-slate-600">${esc(r.action || '—')}</td>
+            <td class="py-2 px-3 text-slate-600">${r.from && r.to && r.from !== r.to ? esc(r.from) + ' → ' + esc(r.to) : esc(r.to || '—')}</td>
+            <td class="py-2 px-3 text-right tabular-nums">${isNum(r.target) ? fmtUSD(r.target) : '—'}${isNum(r.priorTarget) && r.priorTarget !== r.target ? `<span class="text-slate-400"> (was ${fmtUSD(r.priorTarget)})</span>` : ''}</td></tr>`).join('')}</tbody></table></div>`
+        : '<p class="text-sm text-slate-500">No recent rating changes available.</p>';
+
+      $('tab-analysts').innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <p class="text-xs font-medium text-slate-500">Consensus rating</p>
+            <div class="mt-1.5">${ratingBadge(a.rating)}</div>
+            <p class="text-xs text-slate-500 mt-2 tabular-nums">${isNum(a.ratingMean) ? `Score ${a.ratingMean.toFixed(2)} (1 = Strong Buy, 5 = Sell)` : ''}<br>${isNum(a.numAnalysts) ? a.numAnalysts + ' analysts covering' : ''}</p>
+          </div>
+          <div class="md:col-span-2 bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <p class="text-xs font-medium text-slate-500">12-month price target range</p>
+            ${targetViz}
+          </div>
+        </div>
+        <div><h4 class="text-sm font-semibold text-slate-900 mb-2">Rating distribution</h4>${breakdownViz}</div>
+        <div><h4 class="text-sm font-semibold text-slate-900 mb-2">Recent analyst actions</h4>${actions}</div>
+        <p class="text-xs text-slate-500">Full broker research reports are paywalled. For more detail see
+          <a class="text-brand-600 underline" target="_blank" rel="noopener noreferrer" href="https://finance.yahoo.com/quote/${encodeURIComponent(s.ticker)}/analysis">Yahoo Finance analysis</a> or
+          <a class="text-brand-600 underline" target="_blank" rel="noopener noreferrer" href="https://stockanalysis.com/stocks/${encodeURIComponent(s.saSlug || s.ticker.toLowerCase())}/forecast/">StockAnalysis forecast</a>.</p>`;
+    }
+
+    // ---------------- P/E history ----------------
+    function renderHistory() {
+      const s = selected, rows = history[s.ticker] || [];
+      const el = $('tab-history');
+      killChart('hist');
+      const withPe = rows.filter(r => isNum(r.pe) || isNum(r.fwd));
+      if (withPe.length < 2) {
+        el.innerHTML = `<div class="bg-slate-50 border border-slate-200 rounded-xl p-5 text-sm text-slate-600">
+          <p class="font-semibold text-slate-800">P/E history is still building.</p>
+          <p class="mt-1">The pipeline saves one snapshot per day, so this chart fills in over time. Snapshots so far: ${withPe.length}.</p></div>`;
+        return;
+      }
+      el.innerHTML = `<div>
+          <h4 class="text-sm font-semibold text-slate-900">Trailing and forward P/E over time</h4>
+          <p class="text-xs text-slate-500">${withPe.length} daily snapshots from ${fmtDate(withPe[0].d)} to ${fmtDate(withPe[withPe.length - 1].d)}. Forward P/E uses whatever the consensus was on each day.</p>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-4"><div class="relative h-72"><canvas id="chart-hist"></canvas></div></div>`;
+      charts.hist = new Chart($('chart-hist'), {
+        type: 'line',
+        data: {
+          labels: withPe.map(r => r.d),
+          datasets: [
+            { label: 'P/E (TTM)', data: withPe.map(r => isNum(r.pe) ? r.pe : null), borderColor: C.blue, backgroundColor: C.blue, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: 0.2, spanGaps: true },
+            { label: 'Forward P/E', data: withPe.map(r => isNum(r.fwd) ? r.fwd : null), borderColor: C.orange, backgroundColor: C.orange, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: 0.2, spanGaps: true }
+          ]
+        },
+        options: baseOptions({
+          plugins: { legend: { position: 'top', align: 'end', labels: { boxWidth: 10, font: { size: 11 } } }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${isNum(ctx.raw) ? ctx.raw.toFixed(2) + 'x' : 'n/a'}` } } },
+          scales: { x: { grid: { display: false }, border: { color: C.axis }, ticks: { maxTicksLimit: 8 } }, y: { grid: { color: C.grid }, border: { display: false }, ticks: { callback: v => v + 'x' } } }
+        })
+      });
+    }
+
+    // ---------------- P/E forecast (from the original dashboard, made null-safe) ----------------
+    function seedGrowth(s) {
+      const e = (s.estimates?.earnings || []).find(r => r.period === '+1y');
+      if (e && isNum(e.growth)) return { g: clamp(Math.round(e.growth * 100 * 2) / 2, -5, 45), seeded: true };
+      return { g: 10, seeded: false };
+    }
+
+    function loadTickerIntoForecast(s) {
+      $('pe-current-price').value = s.price;
+      let eps, note = '';
+      if (isNum(s.trailingEps) && s.trailingEps > 0) eps = s.trailingEps;
+      else if (isNum(s.pe) && s.pe > 0) eps = +(s.price / s.pe).toFixed(2);
+      else if (isNum(s.forwardEps) && s.forwardEps > 0) { eps = s.forwardEps; note = 'No positive trailing EPS (the company is not profitable on a trailing basis), so forward EPS is used as the starting point.'; }
+      else { eps = 1; note = 'No positive EPS available. Enter your own EPS to model this stock; the number shown is a placeholder.'; }
+      $('pe-current-eps').value = eps;
+      const n = $('pe-eps-note'); n.textContent = note; n.classList.toggle('hidden', !note);
+      $('pe-forward-ratio-badge').textContent = isNum(s.fwdPe) ? s.fwdPe.toFixed(2) + 'x' : '—';
+
+      const basePe = isNum(s.fwdPe) && s.fwdPe > 0 ? s.fwdPe : (isNum(s.pe) && s.pe > 0 ? s.pe : 20);
+      $('pe-bear').value = clamp(Math.round(basePe * 0.75 * 2) / 2, 5, 150);
+      $('pe-base').value = clamp(Math.round(basePe * 2) / 2, 5, 200);
+      $('pe-bull').value = clamp(Math.round(basePe * 1.25 * 2) / 2, 5, 250);
+
+      const { g, seeded } = seedGrowth(s);
+      $('pe-eps-growth').value = g;
+      $('pe-growth-hint').textContent = seeded ? 'Starting point = consensus next-year EPS growth. Growth usually fades over a long horizon, so consider lowering it.' : 'No consensus growth available; default is 10%.';
     }
 
     function renderPeForecast() {
-      const price = Math.max(0.01, parseFloat(document.getElementById('pe-current-price').value) || 100);
-      const eps = Math.max(0.01, parseFloat(document.getElementById('pe-current-eps').value) || 5);
-      const years = parseInt(document.getElementById('pe-horizon').value, 10) || 5;
-      const g = (parseFloat(document.getElementById('pe-eps-growth').value) || 0) / 100;
-      const bearPe = parseFloat(document.getElementById('pe-bear').value) || 15;
-      const basePe = parseFloat(document.getElementById('pe-base').value) || 22;
-      const bullPe = parseFloat(document.getElementById('pe-bull').value) || 30;
-      const disc = (parseFloat(document.getElementById('pe-discount-rate').value) || 10) / 100;
+      const price = Math.max(0.01, parseFloat($('pe-current-price').value) || 100);
+      const eps = Math.max(0.01, parseFloat($('pe-current-eps').value) || 5);
+      const years = parseInt($('pe-horizon').value, 10) || 5;
+      const g = (parseFloat($('pe-eps-growth').value) || 0) / 100;
+      const bearPe = parseFloat($('pe-bear').value) || 15, basePe = parseFloat($('pe-base').value) || 22, bullPe = parseFloat($('pe-bull').value) || 30;
+      const disc = (parseFloat($('pe-discount-rate').value) || 10) / 100;
 
-      document.getElementById('pe-horizon-val').textContent = `${years} Year${years > 1 ? 's' : ''}`;
-      document.getElementById('pe-eps-growth-val').textContent = `${(g * 100).toFixed(1)}%`;
-      document.getElementById('pe-bear-val').textContent = `${bearPe.toFixed(1)}x`;
-      document.getElementById('pe-base-val').textContent = `${basePe.toFixed(1)}x`;
-      document.getElementById('pe-bull-val').textContent = `${bullPe.toFixed(1)}x`;
-      document.getElementById('matrix-year-label').textContent = years;
+      $('pe-horizon-val').textContent = `${years} Year${years > 1 ? 's' : ''}`;
+      $('pe-eps-growth-val').textContent = `${(g * 100).toFixed(1)}%`;
+      $('pe-bear-val').textContent = `${bearPe.toFixed(1)}x`;
+      $('pe-base-val').textContent = `${basePe.toFixed(1)}x`;
+      $('pe-bull-val').textContent = `${bullPe.toFixed(1)}x`;
+      $('matrix-year-label').textContent = years;
 
       const impliedPe = price / eps;
-      document.getElementById('pe-implied-current').textContent = `Current P/E: ${impliedPe.toFixed(2)}x`;
-      document.getElementById('pe-current-ratio-badge').textContent = `${impliedPe.toFixed(2)}x`;
+      $('pe-implied-current').textContent = `Current P/E: ${impliedPe.toFixed(2)}x`;
+      $('pe-current-ratio-badge').textContent = `${impliedPe.toFixed(2)}x`;
 
       const calc = (targetPe) => {
-        const fEps = eps * Math.pow(1 + g, years);
-        const fPrice = fEps * targetPe;
-        const cagr = (Math.pow(fPrice / price, 1 / years) - 1) * 100;
-        const pv = fPrice / Math.pow(1 + disc, years);
-        return { fEps, fPrice, cagr, pv };
+        const fEps = eps * Math.pow(1 + g, years), fPrice = fEps * targetPe;
+        return { fEps, fPrice, cagr: (Math.pow(fPrice / price, 1 / years) - 1) * 100, pv: fPrice / Math.pow(1 + disc, years) };
       };
-
-      const bear = calc(bearPe);
-      const base = calc(basePe);
-      const bull = calc(bullPe);
-
-      document.getElementById('pe-scenario-cards').innerHTML = [
-        { title: 'Bear Case', pe: bearPe, res: bear, ring: 'border-rose-200 bg-rose-50/50', txt: 'text-rose-700' },
-        { title: 'Base Case', pe: basePe, res: base, ring: 'border-brand-200 bg-brand-50/60', txt: 'text-brand-700' },
-        { title: 'Bull Case', pe: bullPe, res: bull, ring: 'border-emerald-200 bg-emerald-50/50', txt: 'text-emerald-700' }
-      ].map(c => `
+      const scen = [
+        { title: 'Bear Case', pe: bearPe, res: calc(bearPe), ring: 'border-orange-200 bg-orange-50/50', txt: 'text-orange-700' },
+        { title: 'Base Case', pe: basePe, res: calc(basePe), ring: 'border-brand-200 bg-brand-50/60', txt: 'text-brand-700' },
+        { title: 'Bull Case', pe: bullPe, res: calc(bullPe), ring: 'border-emerald-200 bg-emerald-50/50', txt: 'text-emerald-700' }
+      ];
+      $('pe-scenario-cards').innerHTML = scen.map(c => `
         <div class="rounded-xl border ${c.ring} p-3.5">
           <span class="text-xs font-semibold uppercase tracking-wider ${c.txt}">${c.title} (${c.pe.toFixed(1)}x)</span>
           <p class="text-xl font-bold text-slate-900 mt-1 tabular-nums">${fmtUSD(c.res.fPrice)}</p>
-          <p class="text-xs text-slate-600 mt-0.5 tabular-nums">CAGR: <strong class="${c.res.cagr >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${c.res.cagr >= 0 ? '+' : ''}${c.res.cagr.toFixed(1)}%</strong></p>
-          <p class="text-xs text-slate-500 mt-0.5 tabular-nums">PV Today (${(disc * 100).toFixed(0)}% disc): ${fmtUSD(c.res.pv)}</p>
-        </div>
-      `).join('');
+          <p class="text-xs text-slate-600 mt-0.5 tabular-nums">Annual return: <strong class="${c.res.cagr >= 0 ? 'text-emerald-700' : 'text-rose-700'}">${fmtPct(c.res.cagr, 1)}</strong></p>
+          <p class="text-xs text-slate-500 mt-0.5 tabular-nums">PV today (${(disc * 100).toFixed(0)}% discount): ${fmtUSD(c.res.pv)}</p>
+        </div>`).join('');
 
       const labels = Array.from({ length: years + 1 }, (_, t) => `Yr ${t}`);
-      const seriesFor = (targetPe) => labels.map((_, t) => {
-        const interpPe = impliedPe + ((targetPe - impliedPe) * (t / years));
-        return +(eps * Math.pow(1 + g, t) * interpPe).toFixed(2);
-      });
-
-      if (charts.peProj) charts.peProj.destroy();
-      charts.peProj = new Chart(document.getElementById('chart-pe-projection'), {
+      const seriesFor = (targetPe) => labels.map((_, t) => +(eps * Math.pow(1 + g, t) * (impliedPe + (targetPe - impliedPe) * (t / years))).toFixed(2));
+      killChart('proj');
+      charts.proj = new Chart($('chart-pe-projection'), {
         type: 'line',
         data: {
           labels,
           datasets: [
-            { label: `Bull (${bullPe}x)`, data: seriesFor(bullPe), borderColor: '#10b981', tension: 0.25, fill: false },
-            { label: `Base (${basePe}x)`, data: seriesFor(basePe), borderColor: '#4f46e5', borderWidth: 2.5, tension: 0.25, fill: false },
-            { label: `Bear (${bearPe}x)`, data: seriesFor(bearPe), borderColor: '#f43f5e', borderDash: [5, 5], tension: 0.25, fill: false }
+            { label: `Bull (${bullPe}x)`, data: seriesFor(bullPe), borderColor: C.aqua, backgroundColor: C.aqua, borderWidth: 2, pointRadius: 3, tension: 0.25 },
+            { label: `Base (${basePe}x)`, data: seriesFor(basePe), borderColor: C.blue, backgroundColor: C.blue, borderWidth: 2.5, pointRadius: 3, tension: 0.25 },
+            { label: `Bear (${bearPe}x)`, data: seriesFor(bearPe), borderColor: C.orange, backgroundColor: C.orange, borderWidth: 2, pointRadius: 3, tension: 0.25 }
           ]
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: { ticks: { callback: v => '$' + v }, grid: { color: '#f1f5f9' } },
-            x: { grid: { display: false } }
-          },
-          plugins: {
-            legend: { position: 'top', align: 'end', labels: { boxWidth: 12, font: { size: 11 } } },
-            tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtUSD(ctx.raw)}` } }
-          }
-        }
+        options: baseOptions({
+          plugins: { legend: { position: 'top', align: 'end', labels: { boxWidth: 12, font: { size: 11 } } }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtUSD(ctx.raw)}` } } },
+          scales: { x: { grid: { display: false }, border: { color: C.axis } }, y: { grid: { color: C.grid }, border: { display: false }, ticks: { callback: v => '$' + v } } }
+        })
       });
 
       const gSteps = [-0.05, -0.025, 0, 0.025, 0.05].map(d => g + d);
       const peSteps = [-6, -3, 0, 3, 6].map(d => Math.max(5, basePe + d));
-      document.getElementById('pe-sensitivity-table').innerHTML = `
-        <thead>
-          <tr class="bg-slate-50 border-b border-slate-200 text-slate-600">
-            <th class="py-2.5 px-3 text-left">EPS Growth \ Exit P/E</th>
-            ${peSteps.map(pe => `<th class="py-2.5 px-3">${pe.toFixed(1)}x</th>`).join('')}
-          </tr>
-        </thead>
+      $('pe-sensitivity-table').innerHTML = `
+        <thead><tr class="bg-slate-50 border-b border-slate-200 text-slate-600">
+          <th class="py-2.5 px-3 text-left">EPS growth ↓ / Exit P/E →</th>${peSteps.map(pe => `<th class="py-2.5 px-3">${pe.toFixed(1)}x</th>`).join('')}</tr></thead>
         <tbody class="divide-y divide-slate-100">
-          ${gSteps.map(gr => `
-            <tr>
-              <td class="py-2.5 px-3 text-left font-semibold text-slate-700 bg-slate-50/60 tabular-nums">${(gr * 100).toFixed(1)}%</td>
-              ${peSteps.map(pe => {
-                const p = eps * Math.pow(1 + gr, years) * pe;
-                const ret = ((p - price) / price) * 100;
-                const isCenter = Math.abs(gr - g) < 0.0001 && Math.abs(pe - basePe) < 0.01;
-                const bg = isCenter ? 'bg-brand-50 ring-1 ring-inset ring-brand-300 font-bold' : ret >= 30 ? 'bg-emerald-50/70' : ret < 0 ? 'bg-rose-50/60' : '';
-                return `<td class="py-2.5 px-3 tabular-nums ${bg}">
-                  <div class="text-slate-900">${fmtUSD(p)}</div>
-                  <div class="text-xs ${ret >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${ret >= 0 ? '+' : ''}${ret.toFixed(1)}%</div>
-                </td>`;
-              }).join('')}
-            </tr>
-          `).join('')}
-        </tbody>
-      `;
+          ${gSteps.map(gr => `<tr><td class="py-2.5 px-3 text-left font-semibold text-slate-700 bg-slate-50/60 tabular-nums">${(gr * 100).toFixed(1)}%</td>
+            ${peSteps.map(pe => {
+              const p = eps * Math.pow(1 + gr, years) * pe, ret = (p - price) / price * 100;
+              const center = Math.abs(gr - g) < 0.0001 && Math.abs(pe - basePe) < 0.01;
+              const bg = center ? 'bg-brand-50 ring-1 ring-inset ring-brand-300 font-bold' : ret >= 30 ? 'bg-emerald-50/70' : ret < 0 ? 'bg-rose-50/60' : '';
+              return `<td class="py-2.5 px-3 tabular-nums ${bg}"><div class="text-slate-900">${fmtUSD(p)}</div><div class="text-xs ${ret >= 0 ? 'text-emerald-700' : 'text-rose-700'}">${fmtPct(ret, 1)}</div></td>`;
+            }).join('')}</tr>`).join('')}
+        </tbody>`;
     }
 
-    function openAnalyzeModal(ticker) {
-      populatePeSelect();
-      document.getElementById('pe-stock-select').value = ticker;
-      const s = stocks.find(x => x.ticker === ticker);
-      if (s) document.getElementById('analyze-modal-title').textContent = `${s.ticker} (${s.name}) — P/E Price Forecast`;
-      document.getElementById('modal-analyze-stock').classList.remove('hidden');
-      loadTickerIntoForecast(ticker);
-      lucide.createIcons();
-    }
+    ['pe-current-price', 'pe-current-eps', 'pe-horizon', 'pe-eps-growth', 'pe-bear', 'pe-base', 'pe-bull', 'pe-discount-rate']
+      .forEach(id => $(id).addEventListener('input', renderPeForecast));
 
-    document.getElementById('pe-stock-select').addEventListener('change', (e) => {
-      const s = stocks.find(x => x.ticker === e.target.value);
-      if (s) document.getElementById('analyze-modal-title').textContent = `${s.ticker} (${s.name}) — P/E Price Forecast`;
-      loadTickerIntoForecast(e.target.value);
-    });
-    ['pe-current-price', 'pe-current-eps', 'pe-horizon', 'pe-eps-growth', 'pe-bear', 'pe-base', 'pe-bull', 'pe-discount-rate'].forEach(id => {
-      document.getElementById(id).addEventListener('input', renderPeForecast);
-    });
-
-    // ==================== ADD STOCK HANDLERS (AUTO-PULL VIA FINNHUB) ====================
-    function openAddStockModal() {
-      document.getElementById('form-add-stock').reset();
-      const hasKey = !!loadFinnhubKey().trim();
-      const prov = loadApiProvider() === 'fmp' ? 'FMP' : 'Finnhub';
-      const hint = document.getElementById('add-stock-api-hint');
-      hint.innerHTML = hasKey
-        ? `${prov} API connected — just enter a ticker to automatically pull company info, live price, 52W range, and P/E.`
-        : 'Tip: Add your free Finnhub or FMP key (key icon in header) to auto-pull live data by ticker, or enter a price manually below.';
-      document.getElementById('modal-add-stock').classList.remove('hidden');
-    }
-    document.getElementById('btn-add-stock').addEventListener('click', openAddStockModal);
-
-    document.getElementById('form-add-stock').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const ticker = document.getElementById('add-ticker').value.trim().toUpperCase();
-      if (!ticker) return;
-      if (stocks.some(x => x.ticker === ticker)) {
-        showToast(`${ticker} is already on your dashboard`, 'error');
-        return;
-      }
-
-      const key = loadFinnhubKey().trim();
-      let price = parseFloat(document.getElementById('add-price').value);
-      let low52 = parseFloat(document.getElementById('add-low').value);
-      let high52 = parseFloat(document.getElementById('add-high').value);
-      let pe = parseFloat(document.getElementById('add-pe').value);
-      let fwdPe = parseFloat(document.getElementById('add-fwdpe').value);
-      let name = document.getElementById('add-name').value.trim();
-      let sector = document.getElementById('add-sector').value.trim();
-      let exchange = 'NASDAQ';
-
-      const submitBtn = document.getElementById('btn-submit-add-stock');
-      submitBtn.disabled = true;
-      submitBtn.textContent = key ? 'Pulling data...' : 'Adding...';
-
-      try {
-        if (key) {
-          const provider = loadApiProvider();
-          if (provider === 'fmp') {
-            const [qResp, rResp, pResp] = await Promise.all([
-              fetchFinnhubJson(`https://financialmodelingprep.com/stable/quote?symbol=${encodeURIComponent(ticker)}&apikey=${encodeURIComponent(key)}`),
-              fetchFinnhubJson(`https://financialmodelingprep.com/stable/ratios-ttm?symbol=${encodeURIComponent(ticker)}&apikey=${encodeURIComponent(key)}`),
-              fetchFinnhubJson(`https://financialmodelingprep.com/stable/profile?symbol=${encodeURIComponent(ticker)}&apikey=${encodeURIComponent(key)}`)
-            ]);
-            if (qResp.status === 401 || qResp.status === 403) throw new Error((qResp.data && qResp.data['Error Message']) || 'FMP rejected the API key');
-            const qArr = Array.isArray(qResp.data) ? qResp.data[0] : qResp.data;
-            const rArr = Array.isArray(rResp.data) ? rResp.data[0] : rResp.data;
-            const pArr = Array.isArray(pResp.data) ? pResp.data[0] : pResp.data;
-
-            if (!Number.isFinite(price) && qArr && Number.isFinite(qArr.price) && qArr.price > 0) price = +qArr.price.toFixed(2);
-            if (!Number.isFinite(high52) && qArr && Number.isFinite(qArr.yearHigh) && qArr.yearHigh > 0) high52 = +qArr.yearHigh.toFixed(2);
-            if (!Number.isFinite(low52) && qArr && Number.isFinite(qArr.yearLow) && qArr.yearLow > 0) low52 = +qArr.yearLow.toFixed(2);
-            const apiPe = (qArr && qArr.pe) || (rArr && rArr.priceToEarningsRatioTTM);
-            if (!Number.isFinite(pe) && Number.isFinite(apiPe) && apiPe > 0) pe = +apiPe.toFixed(2);
-            if (!name && ((pArr && pArr.companyName) || (qArr && qArr.name))) name = (pArr && pArr.companyName) || qArr.name;
-            if (!sector && pArr && pArr.sector) sector = pArr.sector;
-            if (pArr && pArr.exchangeShortName && pArr.exchangeShortName.includes('NYSE')) exchange = 'NYSE';
-          } else {
-            const [qResp, mResp, pResp] = await Promise.all([
-              fetchFinnhubJson(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(ticker)}&token=${encodeURIComponent(key)}`),
-              fetchFinnhubJson(`https://finnhub.io/api/v1/stock/metric?symbol=${encodeURIComponent(ticker)}&metric=all&token=${encodeURIComponent(key)}`),
-              fetchFinnhubJson(`https://finnhub.io/api/v1/stock/profile2?symbol=${encodeURIComponent(ticker)}&token=${encodeURIComponent(key)}`)
-            ]);
-            if (!qResp.ok && qResp.status === 403) throw new Error(qResp.data.error || 'Finnhub access denied (403)');
-            const qData = qResp.ok ? qResp.data : {};
-            const metrics = (mResp.ok && mResp.data && mResp.data.metric) ? mResp.data.metric : {};
-            const pData = pResp.ok ? pResp.data : {};
-
-            if (!Number.isFinite(price) && Number.isFinite(qData.c) && qData.c > 0) price = +qData.c.toFixed(2);
-            if (!Number.isFinite(high52) && Number.isFinite(metrics['52WeekHigh']) && metrics['52WeekHigh'] > 0) high52 = +metrics['52WeekHigh'].toFixed(2);
-            if (!Number.isFinite(low52) && Number.isFinite(metrics['52WeekLow']) && metrics['52WeekLow'] > 0) low52 = +metrics['52WeekLow'].toFixed(2);
-            const apiPe = metrics.peTTM || metrics.peNormalizedAnnual;
-            if (!Number.isFinite(pe) && Number.isFinite(apiPe) && apiPe > 0) pe = +apiPe.toFixed(2);
-            if (!name && pData.name) name = pData.name;
-            if (!sector && pData.finnhubIndustry) sector = pData.finnhubIndustry;
-            if (pData.exchange && pData.exchange.includes('NEW YORK')) exchange = 'NYSE';
-          }
-        }
-
-        if (!Number.isFinite(price) || price <= 0) {
-          showToast(key ? `Could not find quote for ${ticker}` : 'Enter a Price or connect your Finnhub key first', 'error');
-          return;
-        }
-
-        const finalPe = Number.isFinite(pe) && pe > 0 ? pe : 25;
-        const newStock = {
-          ticker,
-          name: name || ticker,
-          sector: sector || 'Equities',
-          price,
-          low52: Number.isFinite(low52) && low52 > 0 ? low52 : +(price * 0.8).toFixed(2),
-          high52: Number.isFinite(high52) && high52 > 0 ? high52 : +(price * 1.2).toFixed(2),
-          pe: finalPe,
-          fwdPe: Number.isFinite(fwdPe) && fwdPe > 0 ? fwdPe : finalPe,
-          nextQuarter: document.getElementById('add-nextq').value.trim() || 'Upcoming Quarter',
-          nextEarningsEst: document.getElementById('add-nextest').value.trim() || 'Check Estimates link or Edit to set',
-          financeSlug: `${ticker}:${exchange}`,
-          saSlug: ticker.toLowerCase()
-        };
-
-        stocks.push(newStock);
-        saveStocks();
-        document.getElementById('modal-add-stock').classList.add('hidden');
-        renderAll();
-        showToast(`Added ${ticker} (${fmtUSD(price)}) to dashboard`, 'success');
-      } catch (err) {
-        showToast(err.message || `Failed to pull data for ${ticker}`, 'error');
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Pull & Add Stock';
-      }
-    });
-
+    // ============================ start ============================
     window.addEventListener('DOMContentLoaded', () => {
-      updateGistStatusUI();
-      renderAll();
+      Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+      Chart.defaults.color = C.ink2;
+      lucide.createIcons();
+      loadData();
     });
   </script>
 </body>

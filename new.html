@@ -113,6 +113,15 @@
     .tbl thead th { font-size: 11.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
     .tbl tbody tr { border-top: 1px solid var(--bd); }
     .tbl .rowlab { background: var(--ch); font-weight: 600; color: var(--tx2); }
+    .tbl .hm { }
+    @media (max-width: 600px) {
+      .tbl.fit { font-size: 12px; } .tbl.fit th, .tbl.fit td { padding: 8px 5px; }
+      .tbl.fit th:first-child, .tbl.fit td:first-child { white-space: normal; min-width: 0; width: 78px; padding-left: 8px; line-height: 1.2; }
+      .tbl.fit .hm { display: none; } .tbl.wrap td, .tbl.wrap th { white-space: normal; } .tbl.wrap td:first-child { width: 48px; }
+      .tbl.fit thead th { font-size: 10.5px; letter-spacing: 0; }
+      .tbl.sens td { font-size: 11.5px; padding: 7px 2px; } .tbl.sens td small { font-size: 10.5px; }
+      .tbl.sens th { padding: 8px 2px; font-size: 10.5px; text-transform: none; }
+    }
     .boxed { border: 1px solid var(--bd); border-radius: 14px; overflow: hidden; background: var(--sf); }
     .chartbox { position: relative; }
     .skel { background: linear-gradient(90deg, var(--ch), var(--bd), var(--ch)); background-size: 200% 100%; animation: sk 1.2s infinite linear; border-radius: 12px; }
@@ -760,7 +769,7 @@
         <div class="scens" id="pe-scenario-cards"></div>
         <div class="card"><div class="ct"><span>Projected share price</span><span id="pe-implied-current" style="text-transform:none;letter-spacing:0"></span></div><div class="chartbox" style="height:240px;margin-top:8px"><canvas id="chart-pe-projection"></canvas></div></div>
         <div class="card"><h3 class="sec">Valuation sensitivity (year <span id="matrix-year-label">5</span> price &amp; return)</h3><p class="hint" style="margin-bottom:8px">Rows: EPS growth per year. Columns: exit P/E. A what-if tool, not a prediction.</p>
-          <div class="boxed scroll"><table class="tbl sens" id="pe-sensitivity-table"></table></div></div>`;
+          <div class="boxed scroll"><table class="tbl fit sens" id="pe-sensitivity-table"></table></div></div>`;
       renderPeForecast();
     }
     function renderPeForecast() {
@@ -807,11 +816,11 @@
       const gSteps = [-0.05, -0.025, 0, 0.025, 0.05].map(d => g + d);
       const peSteps = [-6, -3, 0, 3, 6].map(d => Math.max(5, basePe + d));
       $('pe-sensitivity-table').innerHTML = `
-        <thead><tr><th>Growth ↓ / Exit P/E →</th>${peSteps.map(pe => `<th>${pe.toFixed(1)}x</th>`).join('')}</tr></thead>
+        <thead><tr><th>Growth ↓<br>P/E →</th>${peSteps.map(pe => `<th>${pe.toFixed(0)}x</th>`).join('')}</tr></thead>
         <tbody>${gSteps.map(gr => `<tr><td class="rowlab tnum">${(gr * 100).toFixed(1)}%</td>${peSteps.map(pe => {
           const p = eps * Math.pow(1 + gr, years) * pe, ret = (p - price) / price * 100;
           const center = Math.abs(gr - g) < 0.0001 && Math.abs(pe - basePe) < 0.01;
-          return `<td class="tnum ${center ? 'center' : ret >= 30 ? 'good' : ret < 0 ? 'bad' : ''}">${fmtUSD(p)}<small class="${cls(ret)}">${arrow(ret)} ${fmtPct(ret, 1)}</small></td>`;
+          return `<td class="tnum ${center ? 'center' : ret >= 30 ? 'good' : ret < 0 ? 'bad' : ''}">${p >= 100 ? '$' + Math.round(p).toLocaleString('en-US') : fmtUSD(p)}<small class="${cls(ret)}">${arrow(ret)} ${Math.abs(ret).toFixed(0)}%</small></td>`;
         }).join('')}</tr>`).join('')}</tbody>`;
     }
 
@@ -821,15 +830,16 @@
       if (!rows.length) { el.innerHTML = '<div class="empty"><b>No annual financials available</b>for this ticker.</div>'; return; }
       const yoy = (i, k) => (i > 0 && isNum(rows[i][k]) && isNum(rows[i - 1][k]) && rows[i - 1][k] > 0) ? (rows[i][k] / rows[i - 1][k] - 1) * 100 : null;
       const margin = (r, k) => (isNum(r[k]) && isNum(r.revenue) && r.revenue > 0) ? r[k] / r.revenue * 100 : null;
+      const fmtB = (n) => !isNum(n) ? '—' : Math.abs(n) >= 1e9 ? (n < 0 ? '-' : '') + '$' + (Math.abs(n) / 1e9).toFixed(1) + 'B' : fmtBig(n);
       const line = (label, fn, bold) => `<tr style="${bold ? 'font-weight:700' : ''}"><td class="rowlab">${label}</td>${rows.map((r, i) => `<td class="tnum">${fn(r, i)}</td>`).join('')}</tr>`;
       const pct = (v) => isNum(v) ? `<span class="${cls(v)}">${arrow(v)} ${fmtPct(v, 1)}</span>` : '—';
       el.innerHTML = `
         <div><h3 class="sec">Annual financials (last ${rows.length} fiscal years)</h3><p class="hint">From company filings via Yahoo Finance. Estimates for coming years are on the Estimates tab.</p></div>
-        <div class="boxed scroll"><table class="tbl"><thead><tr><th>Fiscal year</th>${rows.map(r => `<th>${esc(r.year)}</th>`).join('')}</tr></thead><tbody>
-          ${line('Revenue', r => fmtBig(r.revenue), true)}${line('&nbsp;&nbsp;YoY growth', (r, i) => pct(yoy(i, 'revenue')))}
-          ${line('Gross profit', r => fmtBig(r.grossProfit))}${line('Operating income', r => fmtBig(r.operatingIncome))}
-          ${line('Net income', r => fmtBig(r.netIncome), true)}${line('&nbsp;&nbsp;Net margin', r => { const m = margin(r, 'netIncome'); return isNum(m) ? m.toFixed(1) + '%' : '—'; })}
-          ${line('Diluted EPS', r => fmtUSD(r.eps))}${line('Free cash flow', r => fmtBig(r.fcf))}
+        <div class="boxed scroll"><table class="tbl fit"><thead><tr><th>Year</th>${rows.map(r => `<th>${esc(r.year)}</th>`).join('')}</tr></thead><tbody>
+          ${line('Revenue', r => fmtB(r.revenue), true)}${line('YoY growth', (r, i) => pct(yoy(i, 'revenue')))}
+          ${line('Gross profit', r => fmtB(r.grossProfit))}${line('Oper. income', r => fmtB(r.operatingIncome))}
+          ${line('Net income', r => fmtB(r.netIncome), true)}${line('Net margin', r => { const m = margin(r, 'netIncome'); return isNum(m) ? m.toFixed(1) + '%' : '—'; })}
+          ${line('Diluted EPS', r => fmtUSD(r.eps))}${line('Free cash flow', r => fmtB(r.fcf))}
         </tbody></table></div>
         <div class="card"><div class="chartbox" style="height:240px"><canvas id="chart-fin"></canvas></div></div>`;
       const b = (k) => rows.map(r => isNum(r[k]) ? +(r[k] / 1e9).toFixed(2) : null);
@@ -850,10 +860,10 @@
     function tabEstimates() {
       const s = selected, est = s.estimates || {};
       const table = (title, rows, f) => !rows || !rows.length ? `<div class="empty">No ${title.toLowerCase()} available.</div>` : `
-        <div><h3 class="sec" style="margin-bottom:8px">${title}</h3><div class="boxed scroll"><table class="tbl">
-          <thead><tr><th>Period</th><th>Consensus</th><th>Low</th><th>High</th><th>Year ago</th><th>Growth</th><th>Analysts</th></tr></thead>
-          <tbody>${rows.map(r => `<tr><td><b>${esc(r.label)}</b></td><td class="tnum"><b>${f(r.avg)}</b></td><td class="tnum">${f(r.low)}</td><td class="tnum">${f(r.high)}</td><td class="tnum mu">${f(r.yearAgo)}</td>
-            <td class="tnum">${isNum(r.growth) ? `<span class="${cls(r.growth)}">${arrow(r.growth)} ${fmtPct(r.growth * 100, 1)}</span>` : '—'}</td><td class="tnum mu">${isNum(r.analysts) ? r.analysts : '—'}</td></tr>`).join('')}</tbody></table></div></div>`;
+        <div><h3 class="sec" style="margin-bottom:8px">${title}</h3><div class="boxed scroll"><table class="tbl fit">
+          <thead><tr><th>Period</th><th>Avg</th><th>Low</th><th>High</th><th class="hm">Year ago</th><th>Growth</th><th class="hm">Analysts</th></tr></thead>
+          <tbody>${rows.map(r => `<tr><td><b>${esc(r.label)}</b></td><td class="tnum"><b>${f(r.avg)}</b></td><td class="tnum">${f(r.low)}</td><td class="tnum">${f(r.high)}</td><td class="tnum mu hm">${f(r.yearAgo)}</td>
+            <td class="tnum">${isNum(r.growth) ? `<span class="${cls(r.growth)}">${arrow(r.growth)} ${fmtPct(r.growth * 100, 1)}</span>` : '—'}</td><td class="tnum mu hm">${isNum(r.analysts) ? r.analysts : '—'}</td></tr>`).join('')}</tbody></table></div></div>`;
       $('tab-content').innerHTML = `
         <div><h3 class="sec">Forward estimates</h3><p class="hint">Analyst consensus (average of covering analysts), not company guidance. Forward EPS ${fmtUSD(s.forwardEps)} · Trailing EPS ${fmtUSD(s.trailingEps)} · Next earnings ${fmtDate(s.nextEarnings?.date)}</p></div>
         ${table('EPS estimates', est.earnings, fmtUSD)}${table('Revenue estimates', est.revenue, fmtBig)}`;
@@ -878,8 +888,8 @@
       const breakdownViz = !total ? '<span class="sub">No rating breakdown available.</span>' : `
         <div style="display:flex;gap:2px;height:12px;border-radius:99px;overflow:hidden;margin:8px 0" role="img" aria-label="Analyst ratings: ${BREAKDOWN.map(([k, l]) => `${l} ${bd[k] || 0}`).join(', ')}">${BREAKDOWN.filter(([k]) => bd[k] > 0).map(([k, l, c]) => `<div style="flex:${bd[k]};background:${c}" title="${l}: ${bd[k]}"></div>`).join('')}</div>
         <div style="display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--mu)">${BREAKDOWN.map(([k, l, c]) => `<span><i style="display:inline-block;width:9px;height:9px;border-radius:3px;background:${c};margin-right:5px"></i>${l} <b style="color:var(--tx)">${bd[k] || 0}</b></span>`).join('')}</div>`;
-      const actions = (a.recent || []).length ? `<div class="boxed scroll"><table class="tbl"><thead><tr><th>Date</th><th>Firm</th><th>Action</th><th>Rating</th><th>Target</th></tr></thead><tbody>${a.recent.map(r => `<tr>
-          <td class="mu">${fmtDateShort(r.date)}</td><td style="text-align:left"><b>${esc(r.firm)}</b></td><td style="text-align:left" class="mu">${esc(r.action || '—')}</td>
+      const actions = (a.recent || []).length ? `<div class="boxed scroll"><table class="tbl fit wrap"><thead><tr><th>Date</th><th>Firm</th><th class="hm">Action</th><th>Rating</th><th>Target</th></tr></thead><tbody>${a.recent.map(r => `<tr>
+          <td class="mu">${fmtDateShort(r.date)}</td><td style="text-align:left"><b>${esc(r.firm)}</b></td><td style="text-align:left" class="mu hm">${esc(r.action || '—')}</td>
           <td style="text-align:left" class="mu">${r.from && r.to && r.from !== r.to ? esc(r.from) + ' → ' + esc(r.to) : esc(r.to || '—')}</td>
           <td class="tnum">${isNum(r.target) ? fmtUSD(r.target) : '—'}${isNum(r.priorTarget) && r.priorTarget !== r.target ? `<span class="mu"> (was ${fmtUSD(r.priorTarget)})</span>` : ''}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">No recent rating changes available.</div>';
       $('tab-content').innerHTML = `

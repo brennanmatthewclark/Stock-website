@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>11 Second Edit</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23FFE14D'/><text x='16' y='22' font-size='15' font-weight='900' text-anchor='middle' font-family='Arial'>11</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="logo">11</span><span>Second Edit</span></div>
+    <div class="topbar-right">
+      <span id="claudeStatus" class="chip"></span>
+      <button id="newEdit" class="ghost small" hidden>New edit</button>
+    </div>
+  </header>
+
+  <!-- ========== SETUP ========== -->
+  <main id="viewSetup" class="view" hidden>
+    <section class="card step">
+      <div class="step-head"><span class="num">1</span><div><h2>Upload your video</h2><p class="muted">Raw talking-head footage. Your original file is never modified.</p></div></div>
+      <label id="dropMain" class="drop">
+        <input type="file" id="fileMain" accept="video/*" hidden />
+        <div class="drop-empty"><div class="drop-icon">⬆</div><div><strong>Drop a video</strong> or click to browse</div><div class="muted small">MP4, MOV, WebM…</div></div>
+        <div class="drop-filled" hidden>
+          <video id="mainPreview" muted playsinline preload="metadata"></video>
+          <div><div id="mainName" class="strong"></div><div id="mainMeta" class="muted small"></div><div class="muted small">Click to replace</div></div>
+        </div>
+        <div class="progress" hidden><div class="bar"></div></div>
+      </label>
+    </section>
+
+    <section class="card step">
+      <div class="step-head"><span class="num">2</span><div><h2>Add your own b-roll <span class="optional">optional</span></h2><p class="muted">Clips or photos Claude can cut to while you talk.</p></div></div>
+      <label id="dropBroll" class="drop compact">
+        <input type="file" id="fileBroll" accept="video/*,image/*" multiple hidden />
+        <div><strong>Drop b-roll</strong> or click to add files</div>
+        <div class="progress" hidden><div class="bar"></div></div>
+      </label>
+      <div id="brollList" class="broll-list"></div>
+    </section>
+
+    <section class="card step">
+      <div class="step-head"><span class="num">3</span><div><h2>Choose your edit</h2><p class="muted">Turn features on or off. Claude handles the rest.</p></div></div>
+      <div class="format-row">
+        <span>Output format</span>
+        <div class="seg" id="formatSeg">
+          <button data-format="9:16">9:16 Reel</button>
+          <button data-format="16:9">16:9 Wide</button>
+        </div>
+      </div>
+      <div id="featureList" class="features"></div>
+      <details class="extras">
+        <summary>Notes for Claude <span class="muted small">(optional)</span></summary>
+        <textarea id="notes" rows="3" placeholder="e.g. This is a fall try-on haul with 3 outfits. Keep the outfit spins."></textarea>
+      </details>
+      <button id="editBtn" class="primary big" disabled>Edit Video</button>
+      <p id="editHint" class="muted small center"></p>
+    </section>
+  </main>
+
+  <!-- ========== PROGRESS ========== -->
+  <main id="viewProgress" class="view narrow" hidden>
+    <section class="card">
+      <h2 id="progressTitle">Editing your video…</h2>
+      <p id="progressSub" class="muted">Claude Code is working through each step.</p>
+      <ol id="checklist" class="checklist"></ol>
+      <div id="progressError" class="error" hidden></div>
+    </section>
+  </main>
+
+  <!-- ========== EDITOR ========== -->
+  <main id="viewEditor" class="view editor" hidden>
+    <div class="editor-main">
+      <div class="player-col">
+        <div id="frame" class="frame">
+          <div id="canvas" class="canvas">
+            <div id="pvStage" class="pv-stage"><video id="pvMain" playsinline preload="auto"></video></div>
+            <div id="pvBroll" class="pv-layer"></div>
+            <div id="pvFlash" class="pv-flash"></div>
+            <div id="pvTitle" class="pv-title"><span></span></div>
+            <div id="pvCaption" class="pv-caption"></div>
+            <div id="pvCta" class="pv-cta"><div class="cta-inner"><div class="cta-title"></div><div class="cta-sub"></div><div class="cta-btn">Follow ➜</div></div></div>
+          </div>
+          <button id="bigPlay" class="big-play">▶</button>
+        </div>
+        <div class="transport">
+          <button id="playBtn" class="icon">▶</button>
+          <span id="timeLabel" class="mono">0:00.0 / 0:00.0</span>
+          <span class="spacer"></span>
+          <label class="muted small"><input type="checkbox" id="muteMusic" /> mute music</label>
+        </div>
+      </div>
+      <aside class="side">
+        <div class="side-head">
+          <h3>Transcript</h3>
+          <div class="side-actions">
+            <button id="undoBtn" class="ghost small" disabled>Undo</button>
+            <button id="cutBtn" class="ghost small" disabled>Cut selection</button>
+          </div>
+        </div>
+        <p class="muted small">Select words and press <kbd>Delete</kbd> to cut them. Click a struck-out word to bring it back. Click any word to jump there.</p>
+        <div id="transcript" class="transcript" tabindex="0"></div>
+        <div class="stats" id="stats"></div>
+        <div class="export">
+          <button id="exportBtn" class="primary">Export MP4</button>
+          <button id="studioBtn" class="ghost">Open in HyperFrames Studio</button>
+          <div id="exportStatus" class="muted small"></div>
+          <div class="progress" id="exportProgress" hidden><div class="bar"></div></div>
+          <a id="downloadLink" class="primary link" hidden>Download MP4</a>
+        </div>
+      </aside>
+    </div>
+    <div class="timeline-wrap card">
+      <div id="timeline" class="timeline">
+        <div class="tl-rows" id="tlRows"></div>
+        <div class="playhead" id="playhead"></div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

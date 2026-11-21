@@ -55,6 +55,7 @@ jobs:
         run: |
           mkdir public
           cp index.html public/
+          cp new.html public/
           cp -r data public/data
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

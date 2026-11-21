@@ -636,10 +636,11 @@
             </div>
           </div>
 
-          <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+          <div class="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-y-2 text-xs">
             <div class="flex items-center gap-1.5">
               <a href="https://www.google.com/finance/quote/${encodeURIComponent(s.financeSlug || s.ticker + ':NASDAQ')}" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-700 font-medium">Google Finance</a>
               <a href="https://stockanalysis.com/stocks/${encodeURIComponent(s.saSlug || s.ticker.toLowerCase())}/forecast/" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-700 font-medium">Estimates</a>
+              <a href="https://www.youtube.com/results?search_query=${encodeURIComponent(s.ticker + ' stock')}&sp=CAI%3D" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-700 font-medium" title="Newest YouTube videos about ${esc(s.ticker)}">Videos</a>
             </div>
             <div class="flex items-center gap-1">
               <button type="button" data-analyze-ticker="${esc(s.ticker)}" class="px-2.5 py-1 rounded-md text-brand-700 bg-brand-50 hover:bg-brand-100 font-medium flex items-center gap-1">

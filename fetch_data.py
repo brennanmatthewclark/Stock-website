@@ -462,6 +462,8 @@ def main() -> int:
     ap.add_argument("--out", default="data")
     ap.add_argument("--demo", action="store_true", help="write fake data (no network); the site shows a DEMO banner")
     ap.add_argument("--pause", type=float, default=1.5, help="seconds between tickers (be polite to Yahoo)")
+    ap.add_argument("--retry-waits", default="90,240",
+                    help="after the main pass, retry any failed tickers after waiting this many seconds (comma separated; empty = no retry)")
     args = ap.parse_args()
 
     out = Path(args.out)
@@ -509,6 +511,29 @@ def main() -> int:
                 print(f"[{tk}] ok  price={stocks[-1]['price']}  pe={stocks[-1]['pe']}  fwd={stocks[-1]['fwdPe']}")
             if i < len(tickers) - 1:
                 time.sleep(args.pause)
+
+        # Second chance: Yahoo often throttles for a minute or two. Wait, then retry only the tickers that failed.
+        for wait in [float(w) for w in args.retry_waits.split(",") if w.strip()]:
+            if not errors:
+                break
+            print(f"Retrying {len(errors)} failed ticker(s) ({', '.join(errors)}) after {wait:.0f}s...")
+            time.sleep(wait)
+            for tk in list(errors):
+                try:
+                    fresh_stock = fetch_one(tk, yf)
+                except Exception as e:
+                    errors[tk] = f"{type(e).__name__}: {e}"
+                    print(f"[{tk}] still failing -> {errors[tk]}", file=sys.stderr)
+                else:
+                    pos_ = next((n for n, x in enumerate(stocks) if x["ticker"] == tk), None)
+                    if pos_ is None:
+                        stocks.append(fresh_stock)
+                    else:
+                        stocks[pos_] = fresh_stock
+                    del errors[tk]
+                    print(f"[{tk}] ok on retry  price={fresh_stock['price']}  pe={fresh_stock['pe']}")
+                time.sleep(args.pause)
+        stocks.sort(key=lambda x: tickers.index(x["ticker"]) if x["ticker"] in tickers else len(tickers))
 
     fresh = [s for s in stocks if not s.get("stale")]
     if not args.demo and not fresh:

@@ -31,7 +31,20 @@ jobs:
       - name: Install requirements
         run: pip install -r requirements.txt
       - name: Fetch fresh stock data
-        run: python fetch_data.py --tickers tickers.txt --out data
+        # If Yahoo blocks every request (it sometimes does for a while), wait and try the whole thing again.
+        # Individual stocks that fail are already retried inside fetch_data.py.
+        run: |
+          for attempt in 1 2 3; do
+            if python fetch_data.py --tickers tickers.txt --out data; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "Attempt $attempt failed. Waiting 10 minutes before trying again."
+              sleep 600
+            fi
+          done
+          echo "All 3 attempts failed. The website keeps showing the last good data."
+          exit 1
       - name: Save the data back to the repository
         run: |
           git config user.name "github-actions[bot]"

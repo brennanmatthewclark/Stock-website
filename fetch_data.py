@@ -254,17 +254,25 @@ def news_items(t, limit: int = 8) -> list[dict]:
     return out
 
 
-def backfill_pe(t, price_now, pe_now, lag_days: int = 75) -> list[dict]:
+BACKFILL_VERSION = 2  # bump when the backfill method changes; older backfilled rows are then rebuilt
+
+
+def backfill_pe(t, price_now, pe_now) -> list[dict]:
     """Rebuild past trailing P/E readings (weekly) so the "vs own history" box works from day one.
 
-    P/E on a past week = that week's closing price / the most recent annual diluted EPS that had
-    already been reported by then (fiscal year end + ~75 days). It is an approximation (annual EPS
-    steps once a year), but it uses the same basis as today's trailing P/E. Rows are tagged "bf": 1.
+    P/E on a past week = that week's closing price / an estimate of trailing-12-month EPS on that date.
+    The EPS estimate is drawn as a straight line between the annual diluted EPS values (placed on each
+    fiscal year end) and today's trailing EPS (price / Yahoo's trailing P/E). Because the line ends exactly
+    at today's EPS, the rebuilt history joins up with today's real P/E instead of sitting on a different
+    basis. It is still an approximation. Rows are tagged "bf": BACKFILL_VERSION.
     Returns [] if anything looks inconsistent (for example EPS not adjusted for a stock split)."""
+    if not pe_now or not price_now or pe_now <= 0:
+        return []
     inc = t.income_stmt
     if inc is None or getattr(inc, "empty", True):
         return []
-    eps_by_end = []
+    today = dt.date.today()
+    knots = []
     for col in sorted(inc.columns):
         v = None
         for name in ("Diluted EPS", "Basic EPS"):
@@ -273,19 +281,18 @@ def backfill_pe(t, price_now, pe_now, lag_days: int = 75) -> list[dict]:
                 if v is not None:
                     break
         end = iso(col)
-        if v is not None and end:
-            eps_by_end.append((dt.date.fromisoformat(end), v))
-    if len(eps_by_end) < 2:
+        if v is not None and end and dt.date.fromisoformat(end) < today:
+            knots.append((dt.date.fromisoformat(end), v))
+    if not knots:
         return []
 
-    # sanity check: today's price over the newest annual EPS should be in the same ballpark as Yahoo's trailing P/E
-    newest_eps = eps_by_end[-1][1]
-    if newest_eps <= 0 or not pe_now or not price_now:
+    eps_now = price_now / pe_now
+    newest = knots[-1][1]
+    # sanity check against stock splits: annual EPS and today's trailing EPS should be the same order of magnitude
+    if newest <= 0 or not 0.25 <= eps_now / newest <= 4:
+        print(f"    backfill skipped: EPS basis looks off (today's EPS {eps_now:.2f} vs latest annual {newest:.2f})", file=sys.stderr)
         return []
-    ratio = (price_now / newest_eps) / pe_now
-    if not 0.4 <= ratio <= 2.5:
-        print(f"    backfill skipped: EPS basis looks off (ratio {ratio:.2f})", file=sys.stderr)
-        return []
+    knots.append((today, eps_now))
 
     h = t.history(period="5y", interval="1wk", auto_adjust=False)
     if h is None or getattr(h, "empty", True) or "Close" not in h:
@@ -296,13 +303,20 @@ def backfill_pe(t, price_now, pe_now, lag_days: int = 75) -> list[dict]:
         if close is None or not d:
             continue
         day = dt.date.fromisoformat(d)
-        usable = [e for end, e in eps_by_end if end + dt.timedelta(days=lag_days) <= day]
-        if not usable or usable[-1] <= 0:
+        if day < knots[0][0] or day >= today:
             continue
-        pe = close / usable[-1]
+        for (d0, e0), (d1, e1) in zip(knots, knots[1:]):
+            if d0 <= day <= d1:
+                eps = e0 + (e1 - e0) * (day - d0).days / max((d1 - d0).days, 1)
+                break
+        else:
+            continue
+        if eps <= 0:
+            continue
+        pe = close / eps
         if pe > 1000:
             continue
-        rows.append({"d": d, "price": close, "pe": round(pe, 2), "fwd": None, "bf": 1})
+        rows.append({"d": d, "price": close, "pe": round(pe, 2), "fwd": None, "bf": BACKFILL_VERSION})
     return rows
 
 
@@ -497,10 +511,12 @@ def main() -> int:
         print("Every ticker failed; leaving the deployed site unchanged.", file=sys.stderr)
         return 1
 
-    # first time we see a ticker (little history): fill in past weekly P/E readings
+    # first time we see a ticker (little history): fill in past weekly P/E readings.
+    # Rows made by an older version of the backfill method are thrown away and rebuilt.
     if not args.demo and yf is not None:
         for s in fresh:
-            rows = history.get(s["ticker"], [])
+            rows = [r for r in history.get(s["ticker"], []) if not r.get("bf") or r.get("bf") == BACKFILL_VERSION]
+            history[s["ticker"]] = rows
             if len(rows) >= 30:
                 continue
             try:

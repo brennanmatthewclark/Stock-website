@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Magnificent 7 — Stock Valuation &amp; Earnings Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; background-color: #f8fafc; color: #0f172a; }
+    .tabular-nums { font-variant-numeric: tabular-nums; }
+
+    .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-wrap items-center justify-between gap-3 py-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-lg bg-brand-600 text-white flex items-center justify-center shadow-sm">
+            <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-900 leading-none">Magnificent 7 Dashboard</h1>
+            <p class="text-xs text-slate-500 mt-0.5">52-Week Range, P/E Multiples &amp; Next Earnings Estimates (Nov 2026 Baseline)</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <div id="view-mode-toggle" class="inline-flex rounded-lg bg-slate-100 p-0.5 text-xs font-medium">
+            <button type="button" id="view-cards-btn" class="px-2.5 py-1 rounded-md bg-white text-slate-900 shadow-xs">Cards</button>
+            <button type="button" id="view-table-btn" class="px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900">Table</button>
+          </div>
+          <button type="button" id="btn-add-stock" class="px-2.5 py-1.5 text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 rounded-lg transition-colors flex items-center gap-1" title="Add a new stock">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i><span>Add Stock</span>
+          </button>
+          <button type="button" id="btn-finnhub-refresh" class="px-2.5 py-1.5 text-xs font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs" title="Fetch live Price, 52W High/Low, and P/E (TTM) via Finnhub">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i><span>Live Quotes</span>
+          </button>
+          <button type="button" id="btn-finnhub-settings" class="p-1.5 text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors" title="Finnhub API Key Settings">
+            <i data-lucide="key-round" class="w-3.5 h-3.5"></i>
+          </button>
+          <button type="button" id="btn-gist-sync" class="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-1.5" title="Sync edits across devices via GitHub Gist">
+            <span id="gist-status-dot" class="w-2 h-2 rounded-full bg-slate-400"></span>
+            <i data-lucide="cloud" class="w-3.5 h-3.5"></i><span>Sync</span>
+          </button>
+          <button type="button" id="btn-reset-data" class="px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+            Reset
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <!-- Summary KPIs -->
+    <div id="summary-kpis" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+
+    <!-- Cards View -->
+    <section id="cards-section" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"></section>
+
+    <!-- Table View (always accessible or toggled) -->
+    <section id="table-section" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="p-4 sm:p-5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 class="text-base font-semibold text-slate-900">Magnificent 7 Side-by-Side Comparison</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Click any column header to sort, or click Edit to update live quotes.</p>
+        </div>
+      </div>
+      <div class="overflow-x-auto custom-scrollbar">
+        <table class="w-full text-left border-collapse">
+          <thead id="mag7-thead" class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider"></thead>
+          <tbody id="mag7-tbody" class="divide-y divide-slate-100 text-sm"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Charts Row -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div>
+            <h2 class="text-sm font-semibold text-slate-900">Trailing P/E vs. Forward P/E</h2>
+            <p class="text-xs text-slate-500">Earnings multiple compression / expansion</p>
+          </div>
+          <label class="flex items-center gap-1.5 text-xs font-medium text-slate-600 cursor-pointer">
+            <input type="checkbox" id="toggle-include-tsla" class="rounded text-brand-600 focus:ring-brand-500" />
+            <span>Include TSLA (outlier scale)</span>
+          </label>
+        </div>
+        <div class="relative h-72">
+          <canvas id="chart-pe-compare"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h2 class="text-sm font-semibold text-slate-900">52-Week Range Position (%)</h2>
+            <p class="text-xs text-slate-500">0% = 52-Week Low • 100% = 52-Week High</p>
+          </div>
+        </div>
+        <div class="relative h-72">
+          <canvas id="chart-range-pos"></canvas>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Stock P/E Analysis Modal -->
+  <div id="modal-analyze-stock" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-6">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[92vh] flex flex-col overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-white">
+        <div>
+          <h3 id="analyze-modal-title" class="text-lg font-bold text-slate-900">P/E Price Forecast</h3>
+          <p class="text-xs text-slate-500">Model Bear / Base / Bull future share prices using EPS growth and exit P/E multiples.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <select id="pe-stock-select" class="px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"></select>
+          <button type="button" data-close-modal="modal-analyze-stock" class="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+      </div>
+
+      <div class="p-5 sm:p-6 overflow-y-auto custom-scrollbar space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-4 space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Current Price ($)</label>
+                <input type="number" step="0.01" min="0.01" id="pe-current-price" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white tabular-nums" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Implied TTM EPS ($)</label>
+                <input type="number" step="0.01" min="0.01" id="pe-current-eps" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white tabular-nums" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-white rounded-lg border border-slate-200 px-3 py-2">
+                <span class="block text-[11px] font-medium text-slate-500">Current P/E (TTM)</span>
+                <span id="pe-current-ratio-badge" class="text-base font-bold text-slate-900 tabular-nums">—</span>
+              </div>
+              <div class="bg-white rounded-lg border border-slate-200 px-3 py-2">
+                <span class="block text-[11px] font-medium text-slate-500">Forward P/E</span>
+                <span id="pe-forward-ratio-badge" class="text-base font-bold text-brand-700 tabular-nums">—</span>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs font-medium text-slate-700 mb-1">
+                <span>Forecast Horizon</span>
+                <span id="pe-horizon-val" class="text-brand-600 font-semibold">5 Years</span>
+              </div>
+              <input type="range" id="pe-horizon" min="1" max="10" step="1" value="5" class="w-full accent-brand-600" />
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs font-medium text-slate-700 mb-1">
+                <span>Expected EPS Growth (CAGR)</span>
+                <span id="pe-eps-growth-val" class="text-brand-600 font-semibold">15.0%</span>
+              </div>
+              <input type="range" id="pe-eps-growth" min="-5" max="45" step="0.5" value="15" class="w-full accent-brand-600" />
+            </div>
+
+            <div class="pt-2 border-t border-slate-200 space-y-3">
+              <p class="text-xs font-semibold text-slate-700 uppercase tracking-wider">Target Exit P/E Multiples</p>
+              <div>
+                <div class="flex justify-between text-xs font-medium text-rose-700 mb-1">
+                  <span>Bear Case P/E</span>
+                  <span id="pe-bear-val" class="font-semibold">18.0x</span>
+                </div>
+                <input type="range" id="pe-bear" min="5" max="150" step="0.5" value="18" class="w-full accent-rose-500" />
+              </div>
+              <div>
+                <div class="flex justify-between text-xs font-medium text-brand-700 mb-1">
+                  <span>Base Case P/E</span>
+                  <span id="pe-base-val" class="font-semibold">25.0x</span>
+                </div>
+                <input type="range" id="pe-base" min="5" max="200" step="0.5" value="25" class="w-full accent-brand-600" />
+              </div>
+              <div>
+                <div class="flex justify-between text-xs font-medium text-emerald-700 mb-1">
+                  <span>Bull Case P/E</span>
+                  <span id="pe-bull-val" class="font-semibold">32.0x</span>
+                </div>
+                <input type="range" id="pe-bull" min="5" max="250" step="0.5" value="32" class="w-full accent-emerald-600" />
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-slate-200">
+              <label class="block text-xs font-medium text-slate-600 mb-1">Required Return / Discount Rate (%)</label>
+              <input type="number" step="0.5" min="1" max="25" id="pe-discount-rate" value="10" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white tabular-nums" />
+            </div>
+          </div>
+
+          <div class="lg:col-span-8 space-y-5">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" id="pe-scenario-cards"></div>
+            <div class="bg-white rounded-xl border border-slate-200 p-4">
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="text-sm font-semibold text-slate-800">Projected Share Price Trajectory</h4>
+                <span id="pe-implied-current" class="text-xs text-slate-500"></span>
+              </div>
+              <div class="relative h-64">
+                <canvas id="chart-pe-projection"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sensitivity Matrix -->
+        <div class="bg-slate-50 rounded-xl border border-slate-200 p-4">
+          <div class="mb-3">
+            <h4 class="text-sm font-semibold text-slate-900">Valuation Sensitivity Matrix (Year <span id="matrix-year-label">5</span> Price &amp; Return)</h4>
+            <p class="text-xs text-slate-500">Rows show EPS Growth CAGR; columns show Exit P/E Multiple.</p>
+          </div>
+          <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-center border-collapse text-xs sm:text-sm bg-white rounded-lg overflow-hidden" id="pe-sensitivity-table"></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Stock Modal -->
+  <div id="modal-add-stock" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-slate-900">Add Stock by Ticker</h3>
+        <button type="button" data-close-modal="modal-add-stock" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <p id="add-stock-api-hint" class="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-2.5"></p>
+      <form id="form-add-stock" class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Ticker Symbol *</label>
+          <input type="text" id="add-ticker" required placeholder="e.g. AVGO, NFLX, AMD" class="w-full px-3 py-2 text-sm font-semibold border border-slate-300 rounded-lg uppercase tracking-wide" />
+        </div>
+
+        <details class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs">
+          <summary class="font-medium text-slate-700 cursor-pointer select-none">Optional manual fields (auto-filled when Finnhub key is set)</summary>
+          <div class="space-y-2.5 mt-3">
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-[11px] font-medium text-slate-600 mb-1">Company Name</label>
+                <input type="text" id="add-name" placeholder="Auto from API" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-medium text-slate-600 mb-1">Sector</label>
+                <input type="text" id="add-sector" placeholder="Auto from API" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white" />
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="block text-[11px] font-medium text-slate-600 mb-1">Price ($)</label>
+                <input type="number" step="0.01" min="0.01" id="add-price" placeholder="Auto" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white tabular-nums" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-medium text-slate-600 mb-1">52W Low ($)</label>
+                <input type="number" step="0.01" min="0.01" id="add-low" placeholder="Auto" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white tabular-nums" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-medium text-slate-600 mb-1">52W High ($)</label>
+                <input type="number" step="0.01" min="0.01" id="add-high" placeholder="Auto" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white tabular-nums" />
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-[11px] font-medium text-slate-600 mb-1">P/E (TTM)</label>
+                <input type="number" step="0.01" min="0" id="add-pe" placeholder="Auto" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white tabular-nums" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-medium text-slate-600 mb-1">Forward P/E</label>
+                <input type="number" step="0.01" min="0" id="add-fwdpe" placeholder="Optional" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white tabular-nums" />
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-[11px] font-medium text-slate-600 mb-1">Next Quarter</label>
+                <input type="text" id="add-nextq" placeholder="e.g. Q1 2027" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-medium text-slate-600 mb-1">Next Earnings Est.</label>
+                <input type="text" id="add-nextest" placeholder="e.g. EPS Est: $1.65" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white" />
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" data-close-modal="modal-add-stock" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+          <button type="submit" id="btn-submit-add-stock" class="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg">Pull &amp; Add Stock</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Stock Modal -->
+  <div id="modal-edit-stock" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 id="edit-modal-title" class="text-lg font-bold text-slate-900">Update Stock Data</h3>
+        <button type="button" data-close-modal="modal-edit-stock" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form id="form-edit-stock" class="space-y-3">
+        <input type="hidden" id="edit-ticker" />
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Current Price ($)</label>
+            <input type="number" step="0.01" min="0.01" id="edit-price" required class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg tabular-nums" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">52W Low ($)</label>
+            <input type="number" step="0.01" min="0.01" id="edit-low" required class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg tabular-nums" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">52W High ($)</label>
+            <input type="number" step="0.01" min="0.01" id="edit-high" required class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg tabular-nums" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">P/E Ratio (TTM)</label>
+            <input type="number" step="0.01" min="0" id="edit-pe" required class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg tabular-nums" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Forward P/E Ratio</label>
+            <input type="number" step="0.01" min="0" id="edit-fwdpe" required class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg tabular-nums" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Next Quarter Label</label>
+          <input type="text" id="edit-nextq" required class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Next Earnings Estimate</label>
+          <input type="text" id="edit-nextest" required class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg" />
+        </div>
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" data-close-modal="modal-edit-stock" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+          <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- GitHub Gist Sync Modal -->
+  <div id="modal-gist-sync" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="cloud" class="w-5 h-5 text-brand-600"></i>
+          <h3 class="text-lg font-bold text-slate-900">GitHub Gist Multi-Device Sync</h3>
+        </div>
+        <button type="button" data-close-modal="modal-gist-sync" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-600 space-y-1">
+        <p class="font-semibold text-slate-800">Quick Setup (Free, Private):</p>
+        <p>1. Create a GitHub Personal Access Token (classic) with only the <code class="px-1 py-0.5 bg-slate-200 rounded">gist</code> scope.</p>
+        <p>2. Paste your token below and click <strong>Push to Gist</strong> to create a private Gist automatically.</p>
+        <p>3. On other devices, paste the same token and <strong>Gist ID</strong>, then click <strong>Pull from Gist</strong>.</p>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">GitHub Personal Access Token</label>
+          <input type="password" id="gist-token-input" placeholder="ghp_..." autocomplete="off" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg font-mono" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Private Gist ID</label>
+          <input type="text" id="gist-id-input" placeholder="Leave blank on first Push to auto-create" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg font-mono" />
+        </div>
+        <label class="flex items-center justify-between pt-1 cursor-pointer">
+          <span class="text-xs font-medium text-slate-700">Auto-push edits to Gist</span>
+          <input type="checkbox" id="gist-autosync-input" class="rounded text-brand-600 focus:ring-brand-500" />
+        </label>
+        <p id="gist-sync-status-text" class="text-xs text-slate-500"></p>
+      </div>
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100">
+        <button type="button" id="btn-gist-disconnect" class="px-3 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 rounded-lg">Disconnect</button>
+        <div class="flex items-center gap-2">
+          <button type="button" id="btn-gist-pull" class="px-3.5 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg">Pull from Gist</button>
+          <button type="button" id="btn-gist-push" class="px-3.5 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg">Push to Gist</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Finnhub API Modal -->
+  <div id="modal-finnhub" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="key-round" class="w-5 h-5 text-brand-600"></i>
+          <h3 class="text-lg font-bold text-slate-900">Finnhub Live Data Setup</h3>
+        </div>
+        <button type="button" data-close-modal="modal-finnhub" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-600 space-y-1">
+        <p class="font-semibold text-slate-800">Free Tier (60 calls/min):</p>
+        <p>1. Get a free API key at <a href="https://finnhub.io/register" target="_blank" rel="noopener noreferrer" class="text-brand-600 underline font-medium">finnhub.io/register</a>.</p>
+        <p>2. Paste your key below to pull live <strong>Current Price</strong>, <strong>52W High/Low</strong>, and <strong>P/E (TTM)</strong> for all 7 stocks.</p>
+        <p class="text-slate-500">Forward P/E and Next Earnings Estimates remain editable via the Edit button.</p>
+      </div>
+      <form id="form-finnhub" class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Finnhub API Key</label>
+          <input type="password" id="finnhub-key-input" placeholder="Paste your Finnhub token..." autocomplete="off" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg font-mono" />
+        </div>
+        <p id="finnhub-last-sync" class="text-xs text-slate-500"></p>
+        <div class="flex justify-between items-center pt-3 border-t border-slate-100">
+          <button type="button" id="btn-finnhub-clear" class="px-3 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 rounded-lg">Clear Key</button>
+          <div class="flex gap-2">
+            <button type="button" data-close-modal="modal-finnhub" class="px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+            <button type="submit" class="px-3.5 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg">Save &amp; Refresh</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
+
+  <script>
+    const STORAGE_KEY = 'mag7_dashboard_v1';
+    const GIST_CONFIG_KEY = 'mag7_gist_config_v1';
+    const GIST_FILENAME = 'mag7-dashboard.json';
+
+    // Grounded Nov 2026 Magnificent 7 Baseline
+    const DEFAULT_STOCKS = [
+      {
+        ticker: 'AAPL', name: 'Apple Inc.', sector: 'Consumer Tech',
+        price: 342.56, low52: 243.42, high52: 360.83,
+        pe: 38.89, fwdPe: 37.00,
+        nextQuarter: 'Q1 FY27 (Dec 2026)',
+        nextEarningsEst: 'EPS Est: $2.91 • Q4 Rev Est: $113.4B',
+        financeSlug: 'AAPL:NASDAQ', saSlug: 'aapl'
+      },
+      {
+        ticker: 'MSFT', name: 'Microsoft Corp.', sector: 'Cloud & AI',
+        price: 484.52, low52: 349.20, high52: 559.15,
+        pe: 25.30, fwdPe: 25.97,
+        nextQuarter: 'Q2 FY27 (Oct–Dec 2026)',
+        nextEarningsEst: 'Rev Est: $98.6B (+21.4% YoY)',
+        financeSlug: 'MSFT:NASDAQ', saSlug: 'msft'
+      },
+      {
+        ticker: 'NVDA', name: 'NVIDIA Corp.', sector: 'Semiconductors',
+        price: 155.46, low52: 124.50, high52: 243.37,
+        pe: 13.49, fwdPe: 10.06,
+        nextQuarter: 'Q4 FY27 (Nov–Jan 2027)',
+        nextEarningsEst: 'Rev Guidance: $130B (Est $127.3B)',
+        financeSlug: 'NVDA:NASDAQ', saSlug: 'nvda'
+      },
+      {
+        ticker: 'AMZN', name: 'Amazon.com, Inc.', sector: 'Cloud & Retail',
+        price: 248.31, low52: 196.00, high52: 287.20,
+        pe: 19.97, fwdPe: 24.92,
+        nextQuarter: 'Q4 2026 (Oct–Dec 2026)',
+        nextEarningsEst: 'Rev Guidance: $240B–$247B • OpInc $28.5B–$33.5B',
+        financeSlug: 'AMZN:NASDAQ', saSlug: 'amzn'
+      },
+      {
+        ticker: 'GOOGL', name: 'Alphabet Inc.', sector: 'Search & Cloud',
+        price: 272.66, low52: 264.22, high52: 408.61,
+        pe: 14.23, fwdPe: 13.85,
+        nextQuarter: 'Q4 2026 (Oct–Dec 2026)',
+        nextEarningsEst: 'Rev Est: $146.9B (+29.0% YoY)',
+        financeSlug: 'GOOGL:NASDAQ', saSlug: 'googl'
+      },
+      {
+        ticker: 'META', name: 'Meta Platforms, Inc.', sector: 'Social & AI',
+        price: 560.84, low52: 520.26, high52: 779.82,
+        pe: 19.12, fwdPe: 17.01,
+        nextQuarter: 'Q4 2026 (Oct–Dec 2026)',
+        nextEarningsEst: 'EPS Est: $8.33 • Rev Guidance: $73B–$76B',
+        financeSlug: 'META:NASDAQ', saSlug: 'meta'
+      },
+      {
+        ticker: 'TSLA', name: 'Tesla, Inc.', sector: 'EV & Autonomy',
+        price: 381.49, low52: 297.38, high52: 498.83,
+        pe: 386.54, fwdPe: 164.66,
+        nextQuarter: 'Q4 2026 (Oct–Dec 2026)',
+        nextEarningsEst: 'EPS Est: $0.50 • Capex Focus ~$20B',
+        financeSlug: 'TSLA:NASDAQ', saSlug: 'tsla'
+      }
+    ];
+
+    let stocks = loadStocks();
+    let viewMode = 'cards';
+    let sortState = { key: 'ticker', dir: 'asc' };
+    let charts = { pe: null, range: null, peProj: null };
+    let gistTimer = null;
+
+    function loadStocks() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (e) { /* ignore */ }
+      return structuredClone(DEFAULT_STOCKS);
+    }
+
+    function saveStocks() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(stocks));
+      } catch (e) { /* ignore */ }
+      const cfg = loadGistConfig();
+      if (cfg.autoSync && cfg.token && cfg.gistId) {
+        clearTimeout(gistTimer);
+        gistTimer = setTimeout(() => pushToGist(true), 1200);
+      }
+    }
+
+    const fmtUSD = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n);
+    const calcRangePos = (s) => {
+      const span = Math.max(0.01, s.high52 - s.low52);
+      return Math.max(0, Math.min(100, ((s.price - s.low52) / span) * 100));
+    };
+    const calcFromHigh = (s) => s.high52 > 0 ? ((s.price - s.high52) / s.high52) * 100 : 0;
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const bg = type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-rose-600' : 'bg-slate-800';
+      const el = document.createElement('div');
+      el.className = `${bg} text-white text-sm px-4 py-2.5 rounded-xl shadow-lg transition-opacity duration-300`;
+      el.textContent = msg;
+      container.appendChild(el);
+      setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 2500);
+    }
+
+    function renderAll() {
+      renderKPIs();
+      renderCards();
+      renderTable();
+      renderCharts();
+      lucide.createIcons();
+    }
+
+    function renderKPIs() {
+      const exTsla = stocks.filter(s => s.ticker !== 'TSLA');
+      const avgPeEx = exTsla.reduce((s, x) => s + x.pe, 0) / exTsla.length;
+      const avgFwdEx = exTsla.reduce((s, x) => s + x.fwdPe, 0) / exTsla.length;
+      const sortedHigh = [...stocks].sort((a, b) => calcFromHigh(b) - calcFromHigh(a));
+      const closest = sortedHigh[0];
+      const deepest = sortedHigh[sortedHigh.length - 1];
+      const cheapestFwd = [...stocks].sort((a, b) => a.fwdPe - b.fwdPe)[0];
+
+      document.getElementById('summary-kpis').innerHTML = `
+        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+          <p class="text-xs font-medium text-slate-500">Avg P/E (Ex-TSLA)</p>
+          <p class="text-2xl font-bold text-slate-900 mt-1 tabular-nums">${avgPeEx.toFixed(1)}x <span class="text-sm font-medium text-brand-600">→ ${avgFwdEx.toFixed(1)}x Fwd</span></p>
+          <p class="text-xs text-slate-500 mt-1">Trailing vs. Forward multiple</p>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+          <p class="text-xs font-medium text-slate-500">Lowest Forward P/E</p>
+          <p class="text-2xl font-bold text-emerald-600 mt-1 tabular-nums">${cheapestFwd.ticker} (${cheapestFwd.fwdPe.toFixed(1)}x)</p>
+          <p class="text-xs text-slate-500 mt-1">Trailing P/E: ${cheapestFwd.pe.toFixed(1)}x</p>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+          <p class="text-xs font-medium text-slate-500">Closest to 52W High</p>
+          <p class="text-2xl font-bold text-slate-900 mt-1 tabular-nums">${closest.ticker} (${calcFromHigh(closest).toFixed(1)}%)</p>
+          <p class="text-xs text-slate-500 mt-1">${fmtUSD(closest.price)} vs ${fmtUSD(closest.high52)} high</p>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+          <p class="text-xs font-medium text-slate-500">Deepest Pullback vs High</p>
+          <p class="text-2xl font-bold text-rose-600 mt-1 tabular-nums">${deepest.ticker} (${calcFromHigh(deepest).toFixed(1)}%)</p>
+          <p class="text-xs text-slate-500 mt-1">${fmtUSD(deepest.price)} vs ${fmtUSD(deepest.high52)} high</p>
+        </div>
+      `;
+    }
+
+    function renderCards() {
+      const grid = document.getElementById('cards-section');
+      grid.innerHTML = stocks.map(s => {
+        const pos = calcRangePos(s);
+        const fromHigh = calcFromHigh(s);
+        const multipleDrop = s.pe > 0 ? ((s.fwdPe - s.pe) / s.pe) * 100 : 0;
+        return `
+          <div data-card-ticker="${s.ticker}" class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between space-y-4 cursor-pointer hover:border-brand-300 hover:shadow-md transition-all">
+            <div>
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-lg font-bold text-slate-900">${s.ticker}</span>
+                    <span class="px-2 py-0.5 text-[11px] font-medium rounded-full bg-slate-100 text-slate-600">${s.sector}</span>
+                  </div>
+                  <p class="text-xs text-slate-500">${s.name}</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-xl font-bold text-slate-900 tabular-nums">${fmtUSD(s.price)}</p>
+                  <p class="text-xs font-medium tabular-nums ${fromHigh >= -10 ? 'text-emerald-600' : 'text-rose-600'}">${fromHigh.toFixed(1)}% from 52W High</p>
+                </div>
+              </div>
+
+              <!-- 52-Week Range Bar -->
+              <div class="mt-4">
+                <div class="flex justify-between text-xs text-slate-500 mb-1.5 tabular-nums">
+                  <span>52W Low: <strong class="text-slate-700">${fmtUSD(s.low52)}</strong></span>
+                  <span>52W High: <strong class="text-slate-700">${fmtUSD(s.high52)}</strong></span>
+                </div>
+                <div class="relative h-2.5 bg-slate-100 rounded-full">
+                  <div class="absolute top-0 left-0 h-2.5 bg-brand-200 rounded-full" style="width: ${pos}%"></div>
+                  <div class="absolute -top-1 w-4 h-4 rounded-full bg-brand-600 border-2 border-white shadow" style="left: calc(${pos}% - 8px)" title="${pos.toFixed(0)}% of 52-week range"></div>
+                </div>
+              </div>
+
+              <!-- P/E & Forward P/E -->
+              <div class="grid grid-cols-2 gap-3 mt-4">
+                <div class="bg-slate-50 rounded-lg p-2.5 border border-slate-100">
+                  <p class="text-[11px] font-medium text-slate-500">P/E Ratio (TTM)</p>
+                  <p class="text-base font-bold text-slate-900 tabular-nums mt-0.5">${s.pe.toFixed(2)}x</p>
+                </div>
+                <div class="bg-brand-50/60 rounded-lg p-2.5 border border-brand-100">
+                  <p class="text-[11px] font-medium text-brand-700">Forward P/E</p>
+                  <div class="flex items-baseline gap-1.5 mt-0.5">
+                    <p class="text-base font-bold text-slate-900 tabular-nums">${s.fwdPe.toFixed(2)}x</p>
+                    <span class="text-[11px] font-medium tabular-nums ${multipleDrop <= 0 ? 'text-emerald-600' : 'text-amber-600'}">${multipleDrop > 0 ? '+' : ''}${multipleDrop.toFixed(0)}%</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Next Earnings Estimate -->
+              <div class="mt-3 bg-slate-50 rounded-lg p-2.5 border border-slate-100">
+                <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Next Earnings • ${s.nextQuarter}</p>
+                <p class="text-xs font-medium text-slate-800 mt-0.5">${s.nextEarningsEst}</p>
+              </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+              <div class="flex items-center gap-1.5">
+                <a href="https://www.google.com/finance/quote/${s.financeSlug}" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-700 font-medium">Google Finance</a>
+                <a href="https://stockanalysis.com/stocks/${s.saSlug}/forecast/" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-700 font-medium">Estimates</a>
+              </div>
+              <div class="flex items-center gap-1">
+                <button type="button" data-analyze-ticker="${s.ticker}" class="px-2.5 py-1 rounded-md text-brand-700 bg-brand-50 hover:bg-brand-100 font-medium flex items-center gap-1">
+                  <i data-lucide="calculator" class="w-3.5 h-3.5"></i><span>Analyze</span>
+                </button>
+                <button type="button" data-edit-ticker="${s.ticker}" class="px-2 py-1 rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium flex items-center gap-1">
+                  <i data-lucide="pencil" class="w-3.5 h-3.5"></i><span>Edit</span>
+                </button>
+                <button type="button" data-delete-ticker="${s.ticker}" class="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50" title="Remove ${s.ticker}">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderTable() {
+      const cols = [
+        { key: 'ticker', label: 'Stock', align: 'left' },
+        { key: 'price', label: 'Current Price', align: 'right' },
+        { key: 'low52', label: '52W Low', align: 'right' },
+        { key: 'high52', label: '52W High', align: 'right' },
+        { key: 'rangePos', label: '52W Pos %', align: 'right' },
+        { key: 'pe', label: 'P/E (TTM)', align: 'right' },
+        { key: 'fwdPe', label: 'Forward P/E', align: 'right' },
+        { key: 'nextQuarter', label: 'Next Earnings Estimate', align: 'left' }
+      ];
+
+      document.getElementById('mag7-thead').innerHTML = `
+        <tr>
+          ${cols.map(c => `
+            <th class="py-3 px-4 cursor-pointer hover:text-slate-900 ${c.align === 'right' ? 'text-right' : 'text-left'}" data-sort="${c.key}">
+              ${c.label} ${sortState.key === c.key ? (sortState.dir === 'asc' ? '▲' : '▼') : ''}
+            </th>
+          `).join('')}
+          <th class="py-3 px-4 text-right">Edit</th>
+        </tr>
+      `;
+
+      const sorted = [...stocks].sort((a, b) => {
+        const va = sortState.key === 'rangePos' ? calcRangePos(a) : a[sortState.key];
+        const vb = sortState.key === 'rangePos' ? calcRangePos(b) : b[sortState.key];
+        if (typeof va === 'string') return sortState.dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+        return sortState.dir === 'asc' ? va - vb : vb - va;
+      });
+
+      document.getElementById('mag7-tbody').innerHTML = sorted.map(s => {
+        const pos = calcRangePos(s);
+        return `
+          <tr class="hover:bg-slate-50/80 transition-colors">
+            <td class="py-3 px-4">
+              <div class="font-bold text-slate-900">${s.ticker}</div>
+              <div class="text-xs text-slate-500">${s.name}</div>
+            </td>
+            <td class="py-3 px-4 text-right font-semibold tabular-nums">${fmtUSD(s.price)}</td>
+            <td class="py-3 px-4 text-right text-slate-600 tabular-nums">${fmtUSD(s.low52)}</td>
+            <td class="py-3 px-4 text-right text-slate-600 tabular-nums">${fmtUSD(s.high52)}</td>
+            <td class="py-3 px-4 text-right tabular-nums">
+              <span class="px-2 py-0.5 text-xs font-medium rounded-full ${pos >= 70 ? 'bg-emerald-100 text-emerald-700' : pos <= 30 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-700'}">${pos.toFixed(0)}%</span>
+            </td>
+            <td class="py-3 px-4 text-right tabular-nums text-slate-700">${s.pe.toFixed(2)}x</td>
+            <td class="py-3 px-4 text-right tabular-nums font-semibold text-brand-700">${s.fwdPe.toFixed(2)}x</td>
+            <td class="py-3 px-4">
+              <div class="text-xs font-semibold text-slate-700">${s.nextQuarter}</div>
+              <div class="text-xs text-slate-500">${s.nextEarningsEst}</div>
+            </td>
+            <td class="py-3 px-4 text-right whitespace-nowrap">
+              <button type="button" data-analyze-ticker="${s.ticker}" class="px-2 py-1 text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 rounded-md mr-1">Analyze</button>
+              <button type="button" data-edit-ticker="${s.ticker}" class="p-1.5 text-slate-500 hover:text-slate-900 rounded-md hover:bg-slate-100"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+              <button type="button" data-delete-ticker="${s.ticker}" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-md hover:bg-rose-50"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderCharts() {
+      const includeTsla = document.getElementById('toggle-include-tsla').checked;
+      const peList = includeTsla ? stocks : stocks.filter(s => s.ticker !== 'TSLA');
+
+      if (charts.pe) charts.pe.destroy();
+      charts.pe = new Chart(document.getElementById('chart-pe-compare'), {
+        type: 'bar',
+        data: {
+          labels: peList.map(s => s.ticker),
+          datasets: [
+            { label: 'P/E (TTM)', data: peList.map(s => s.pe), backgroundColor: '#cbd5e1', borderRadius: 4 },
+            { label: 'Forward P/E', data: peList.map(s => s.fwdPe), backgroundColor: '#4f46e5', borderRadius: 4 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { ticks: { callback: v => v + 'x' }, grid: { color: '#f1f5f9' } },
+            x: { grid: { display: false } }
+          },
+          plugins: { legend: { position: 'top', align: 'end', labels: { boxWidth: 10, font: { size: 11 } } } }
+        }
+      });
+
+      if (charts.range) charts.range.destroy();
+      charts.range = new Chart(document.getElementById('chart-range-pos'), {
+        type: 'bar',
+        data: {
+          labels: stocks.map(s => s.ticker),
+          datasets: [{
+            label: '52W Range Position %',
+            data: stocks.map(s => +calcRangePos(s).toFixed(1)),
+            backgroundColor: stocks.map(s => calcRangePos(s) >= 65 ? '#10b981' : calcRangePos(s) <= 30 ? '#f43f5e' : '#0ea5e9'),
+            borderRadius: 4
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { min: 0, max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#f1f5f9' } },
+            y: { grid: { display: false } }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    // ==================== VIEW TOGGLES & EVENTS ====================
+    document.getElementById('view-cards-btn').addEventListener('click', () => {
+      viewMode = 'cards';
+      document.getElementById('cards-section').classList.remove('hidden');
+      document.getElementById('table-section').classList.add('hidden');
+      document.getElementById('view-cards-btn').className = 'px-2.5 py-1 rounded-md bg-white text-slate-900 shadow-xs';
+      document.getElementById('view-table-btn').className = 'px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900';
+    });
+
+    document.getElementById('view-table-btn').addEventListener('click', () => {
+      viewMode = 'table';
+      document.getElementById('table-section').classList.remove('hidden');
+      document.getElementById('cards-section').classList.add('hidden');
+      document.getElementById('view-table-btn').className = 'px-2.5 py-1 rounded-md bg-white text-slate-900 shadow-xs';
+      document.getElementById('view-cards-btn').className = 'px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900';
+    });
+
+    document.getElementById('toggle-include-tsla').addEventListener('change', renderCharts);
+
+    document.getElementById('mag7-thead').addEventListener('click', (e) => {
+      const th = e.target.closest('th[data-sort]');
+      if (!th) return;
+      const k = th.dataset.sort;
+      if (sortState.key === k) sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+      else { sortState.key = k; sortState.dir = 'desc'; }
+      renderTable();
+      lucide.createIcons();
+    });
+
+    document.addEventListener('click', (e) => {
+      const analyzeBtn = e.target.closest('[data-analyze-ticker]');
+      if (analyzeBtn) {
+        openAnalyzeModal(analyzeBtn.dataset.analyzeTicker);
+        return;
+      }
+      const cardEl = e.target.closest('[data-card-ticker]');
+      if (cardEl && !e.target.closest('a, button')) {
+        openAnalyzeModal(cardEl.dataset.cardTicker);
+        return;
+      }
+      const editBtn = e.target.closest('[data-edit-ticker]');
+      if (editBtn) {
+        const s = stocks.find(x => x.ticker === editBtn.dataset.editTicker);
+        if (!s) return;
+        document.getElementById('edit-modal-title').textContent = `Update ${s.ticker} (${s.name})`;
+        document.getElementById('edit-ticker').value = s.ticker;
+        document.getElementById('edit-price').value = s.price;
+        document.getElementById('edit-low').value = s.low52;
+        document.getElementById('edit-high').value = s.high52;
+        document.getElementById('edit-pe').value = s.pe;
+        document.getElementById('edit-fwdpe').value = s.fwdPe;
+        document.getElementById('edit-nextq').value = s.nextQuarter;
+        document.getElementById('edit-nextest').value = s.nextEarningsEst;
+        document.getElementById('modal-edit-stock').classList.remove('hidden');
+      }
+      const delBtn = e.target.closest('[data-delete-ticker]');
+      if (delBtn) {
+        const t = delBtn.dataset.deleteTicker;
+        if (stocks.length <= 1) { showToast('Keep at least 1 stock on the dashboard', 'error'); return; }
+        stocks = stocks.filter(x => x.ticker !== t);
+        saveStocks();
+        renderAll();
+        populatePeSelect();
+        showToast(`Removed ${t}`);
+      }
+      const closeBtn = e.target.closest('[data-close-modal]');
+      if (closeBtn) {
+        document.getElementById(closeBtn.dataset.closeModal).classList.add('hidden');
+      }
+    });
+
+    document.getElementById('form-edit-stock').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const t = document.getElementById('edit-ticker').value;
+      const idx = stocks.findIndex(x => x.ticker === t);
+      if (idx === -1) return;
+      stocks[idx] = {
+        ...stocks[idx],
+        price: parseFloat(document.getElementById('edit-price').value),
+        low52: parseFloat(document.getElementById('edit-low').value),
+        high52: parseFloat(document.getElementById('edit-high').value),
+        pe: parseFloat(document.getElementById('edit-pe').value),
+        fwdPe: parseFloat(document.getElementById('edit-fwdpe').value),
+        nextQuarter: document.getElementById('edit-nextq').value.trim(),
+        nextEarningsEst: document.getElementById('edit-nextest').value.trim()
+      };
+      saveStocks();
+      document.getElementById('modal-edit-stock').classList.add('hidden');
+      renderAll();
+      showToast(`Updated ${t}`, 'success');
+    });
+
+    document.getElementById('btn-reset-data').addEventListener('click', () => {
+      stocks = structuredClone(DEFAULT_STOCKS);
+      saveStocks();
+      renderAll();
+      showToast('Reset to November 2026 baseline');
+    });
+
+    // ==================== GITHUB GIST SYNC ====================
+    function loadGistConfig() {
+      try {
+        const raw = localStorage.getItem(GIST_CONFIG_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch (e) { /* ignore */ }
+      return { token: '', gistId: '', autoSync: false, lastSynced: '' };
+    }
+
+    function saveGistConfig(cfg) {
+      try { localStorage.setItem(GIST_CONFIG_KEY, JSON.stringify(cfg)); } catch (e) { /* ignore */ }
+      updateGistStatusUI();
+    }
+
+    function updateGistStatusUI() {
+      const cfg = loadGistConfig();
+      const dot = document.getElementById('gist-status-dot');
+      const txt = document.getElementById('gist-sync-status-text');
+      if (dot) dot.className = 'w-2 h-2 rounded-full ' + (cfg.token && cfg.gistId ? 'bg-emerald-500' : cfg.token ? 'bg-amber-400' : 'bg-slate-400');
+      if (txt) txt.textContent = cfg.token && cfg.gistId ? `Connected • Last synced: ${cfg.lastSynced || 'ready'}` : cfg.token ? 'Token saved • Click Push to create Gist' : 'Not connected';
+    }
+
+    async function pushToGist(silent = false) {
+      const token = document.getElementById('gist-token-input').value.trim() || loadGistConfig().token;
+      let gistId = document.getElementById('gist-id-input').value.trim() || loadGistConfig().gistId;
+      const autoSync = document.getElementById('gist-autosync-input').checked;
+      if (!token) { if (!silent) showToast('Enter a GitHub token first', 'error'); return; }
+      try {
+        const url = gistId ? `https://api.github.com/gists/${encodeURIComponent(gistId)}` : 'https://api.github.com/gists';
+        const res = await fetch(url, {
+          method: gistId ? 'PATCH' : 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ description: 'Magnificent 7 Dashboard Data', public: false, files: { [GIST_FILENAME]: { content: JSON.stringify(stocks, null, 2) } } })
+        });
+        if (!res.ok) throw new Error(`GitHub API error (${res.status})`);
+        const data = await res.json();
+        gistId = data.id;
+        document.getElementById('gist-id-input').value = gistId;
+        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        saveGistConfig({ token, gistId, autoSync, lastSynced: now });
+        if (!silent) showToast('Pushed to private GitHub Gist', 'success');
+      } catch (err) {
+        if (!silent) showToast(err.message || 'Push failed', 'error');
+      }
+    }
+
+    async function pullFromGist() {
+      const token = document.getElementById('gist-token-input').value.trim() || loadGistConfig().token;
+      const gistId = document.getElementById('gist-id-input').value.trim() || loadGistConfig().gistId;
+      const autoSync = document.getElementById('gist-autosync-input').checked;
+      if (!token || !gistId) { showToast('Enter token and Gist ID', 'error'); return; }
+      try {
+        const res = await fetch(`https://api.github.com/gists/${encodeURIComponent(gistId)}`, {
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }
+        });
+        if (!res.ok) throw new Error(`GitHub API error (${res.status})`);
+        const data = await res.json();
+        const fileObj = data.files && data.files[GIST_FILENAME];
+        if (!fileObj || !fileObj.content) throw new Error(`${GIST_FILENAME} not found in Gist`);
+        const parsed = JSON.parse(fileObj.content);
+        if (!Array.isArray(parsed)) throw new Error('Invalid data format');
+        stocks = parsed;
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(stocks)); } catch (e) { /* ignore */ }
+        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        saveGistConfig({ token, gistId, autoSync, lastSynced: now });
+        renderAll();
+        document.getElementById('modal-gist-sync').classList.add('hidden');
+        showToast('Pulled latest data from Gist', 'success');
+      } catch (err) {
+        showToast(err.message || 'Pull failed', 'error');
+      }
+    }
+
+    document.getElementById('btn-gist-sync').addEventListener('click', () => {
+      const cfg = loadGistConfig();
+      document.getElementById('gist-token-input').value = cfg.token || '';
+      document.getElementById('gist-id-input').value = cfg.gistId || '';
+      document.getElementById('gist-autosync-input').checked = !!cfg.autoSync;
+      updateGistStatusUI();
+      document.getElementById('modal-gist-sync').classList.remove('hidden');
+    });
+    document.getElementById('gist-autosync-input').addEventListener('change', (e) => {
+      const cfg = loadGistConfig(); cfg.autoSync = e.target.checked; saveGistConfig(cfg);
+    });
+    document.getElementById('btn-gist-push').addEventListener('click', () => pushToGist(false));
+    document.getElementById('btn-gist-pull').addEventListener('click', pullFromGist);
+    document.getElementById('btn-gist-disconnect').addEventListener('click', () => {
+      saveGistConfig({ token: '', gistId: '', autoSync: false, lastSynced: '' });
+      document.getElementById('gist-token-input').value = '';
+      document.getElementById('gist-id-input').value = '';
+      document.getElementById('gist-autosync-input').checked = false;
+      showToast('Disconnected GitHub Gist sync');
+    });
+
+    // ==================== FINNHUB LIVE QUOTES (FREE TIER) ====================
+    const FINNHUB_KEY_STORAGE = 'mag7_finnhub_key_v1';
+
+    function cleanFinnhubKey(k) {
+      return (k || '').replace(/^['"\s]+|['"\s]+$/g, '').trim();
+    }
+
+    function loadFinnhubKey() {
+      try { return cleanFinnhubKey(localStorage.getItem(FINNHUB_KEY_STORAGE) || ''); } catch (e) { return ''; }
+    }
+
+    function saveFinnhubKey(k) {
+      try { localStorage.setItem(FINNHUB_KEY_STORAGE, cleanFinnhubKey(k)); } catch (e) { /* ignore */ }
+    }
+
+    async function fetchFinnhubJson(url) {
+      let res;
+      try {
+        res = await fetch(url);
+      } catch (netErr) {
+        throw new Error('Request blocked in this preview — download the file and open in your browser or Netlify Drop');
+      }
+      let data = {};
+      try { data = await res.json(); } catch (e) { /* ignore */ }
+      if (res.status === 429) throw new Error('Finnhub rate limit reached — try again in a minute');
+      if (res.status === 401) throw new Error(data.error || 'Finnhub rejected the API key (401) — verify your email & copy the API Key (not Secret)');
+      return { ok: res.ok, status: res.status, data };
+    }
+
+    async function refreshFromFinnhub() {
+      const key = loadFinnhubKey();
+      if (!key) {
+        document.getElementById('finnhub-key-input').value = '';
+        document.getElementById('modal-finnhub').classList.remove('hidden');
+        return;
+      }
+
+      const btn = document.getElementById('btn-finnhub-refresh');
+      btn.disabled = true;
+      btn.classList.add('opacity-70');
+      showToast('Fetching live quotes from Finnhub...');
+
+      let updatedCount = 0;
+      try {
+        for (let idx = 0; idx < stocks.length; idx++) {
+          const s = stocks[idx];
+          const [qResp, mResp] = await Promise.all([
+            fetchFinnhubJson(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(s.ticker)}&token=${encodeURIComponent(key)}`),
+            fetchFinnhubJson(`https://finnhub.io/api/v1/stock/metric?symbol=${encodeURIComponent(s.ticker)}&metric=all&token=${encodeURIComponent(key)}`)
+          ]);
+          if (!qResp.ok && qResp.status === 403) {
+            throw new Error(qResp.data.error || 'Finnhub access denied (403) — check your API Key');
+          }
+          const qData = qResp.ok ? qResp.data : {};
+          const metrics = (mResp.ok && mResp.data && mResp.data.metric) ? mResp.data.metric : {};
+
+          let changed = false;
+          if (Number.isFinite(qData.c) && qData.c > 0) { stocks[idx].price = +qData.c.toFixed(2); changed = true; }
+          if (Number.isFinite(metrics['52WeekHigh']) && metrics['52WeekHigh'] > 0) { stocks[idx].high52 = +metrics['52WeekHigh'].toFixed(2); changed = true; }
+          if (Number.isFinite(metrics['52WeekLow']) && metrics['52WeekLow'] > 0) { stocks[idx].low52 = +metrics['52WeekLow'].toFixed(2); changed = true; }
+          const peVal = metrics.peTTM || metrics.peNormalizedAnnual;
+          if (Number.isFinite(peVal) && peVal > 0) { stocks[idx].pe = +peVal.toFixed(2); changed = true; }
+          if (changed) updatedCount++;
+        }
+
+        saveStocks();
+        renderAll();
+        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const statusEl = document.getElementById('finnhub-last-sync');
+        if (statusEl) statusEl.textContent = `Last live refresh: ${now}`;
+        showToast(`Updated live data for ${updatedCount}/${stocks.length} stocks`, 'success');
+      } catch (err) {
+        showToast(err.message || 'Failed to fetch Finnhub data', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-70');
+      }
+    }
+
+    document.getElementById('btn-finnhub-refresh').addEventListener('click', refreshFromFinnhub);
+    document.getElementById('btn-finnhub-settings').addEventListener('click', () => {
+      document.getElementById('finnhub-key-input').value = loadFinnhubKey();
+      document.getElementById('modal-finnhub').classList.remove('hidden');
+    });
+    document.getElementById('form-finnhub').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const k = document.getElementById('finnhub-key-input').value.trim();
+      saveFinnhubKey(k);
+      document.getElementById('modal-finnhub').classList.add('hidden');
+      if (k) refreshFromFinnhub();
+    });
+    document.getElementById('btn-finnhub-clear').addEventListener('click', () => {
+      saveFinnhubKey('');
+      document.getElementById('finnhub-key-input').value = '';
+      showToast('Cleared Finnhub API key');
+    });
+
+    // ==================== P/E FORECAST TAB ====================
+    function populatePeSelect() {
+      const sel = document.getElementById('pe-stock-select');
+      const prev = sel.value;
+      sel.innerHTML = stocks.map(s => `<option value="${s.ticker}">${s.ticker} — ${s.name}</option>`).join('');
+      if (prev && stocks.some(s => s.ticker === prev)) sel.value = prev;
+      else if (stocks.length) loadTickerIntoForecast(stocks[0].ticker);
+    }
+
+    function loadTickerIntoForecast(ticker) {
+      const s = stocks.find(x => x.ticker === ticker);
+      if (!s) return;
+      document.getElementById('pe-current-price').value = s.price;
+      const impliedEps = s.pe > 0 ? +(s.price / s.pe).toFixed(2) : 5;
+      document.getElementById('pe-current-eps').value = impliedEps;
+      document.getElementById('pe-forward-ratio-badge').textContent = s.fwdPe ? `${s.fwdPe.toFixed(2)}x` : '—';
+      const basePe = s.fwdPe > 0 ? s.fwdPe : s.pe;
+      document.getElementById('pe-bear').value = Math.max(5, Math.round(basePe * 0.75 * 2) / 2);
+      document.getElementById('pe-base').value = Math.round(basePe * 2) / 2;
+      document.getElementById('pe-bull').value = Math.min(250, Math.round(basePe * 1.25 * 2) / 2);
+      renderPeForecast();
+    }
+
+    function renderPeForecast() {
+      const price = Math.max(0.01, parseFloat(document.getElementById('pe-current-price').value) || 100);
+      const eps = Math.max(0.01, parseFloat(document.getElementById('pe-current-eps').value) || 5);
+      const years = parseInt(document.getElementById('pe-horizon').value, 10) || 5;
+      const g = (parseFloat(document.getElementById('pe-eps-growth').value) || 0) / 100;
+      const bearPe = parseFloat(document.getElementById('pe-bear').value) || 15;
+      const basePe = parseFloat(document.getElementById('pe-base').value) || 22;
+      const bullPe = parseFloat(document.getElementById('pe-bull').value) || 30;
+      const disc = (parseFloat(document.getElementById('pe-discount-rate').value) || 10) / 100;
+
+      document.getElementById('pe-horizon-val').textContent = `${years} Year${years > 1 ? 's' : ''}`;
+      document.getElementById('pe-eps-growth-val').textContent = `${(g * 100).toFixed(1)}%`;
+      document.getElementById('pe-bear-val').textContent = `${bearPe.toFixed(1)}x`;
+      document.getElementById('pe-base-val').textContent = `${basePe.toFixed(1)}x`;
+      document.getElementById('pe-bull-val').textContent = `${bullPe.toFixed(1)}x`;
+      document.getElementById('matrix-year-label').textContent = years;
+
+      const impliedPe = price / eps;
+      document.getElementById('pe-implied-current').textContent = `Current P/E: ${impliedPe.toFixed(2)}x`;
+      document.getElementById('pe-current-ratio-badge').textContent = `${impliedPe.toFixed(2)}x`;
+
+      const calc = (targetPe) => {
+        const fEps = eps * Math.pow(1 + g, years);
+        const fPrice = fEps * targetPe;
+        const cagr = (Math.pow(fPrice / price, 1 / years) - 1) * 100;
+        const pv = fPrice / Math.pow(1 + disc, years);
+        return { fEps, fPrice, cagr, pv };
+      };
+
+      const bear = calc(bearPe);
+      const base = calc(basePe);
+      const bull = calc(bullPe);
+
+      document.getElementById('pe-scenario-cards').innerHTML = [
+        { title: 'Bear Case', pe: bearPe, res: bear, ring: 'border-rose-200 bg-rose-50/50', txt: 'text-rose-700' },
+        { title: 'Base Case', pe: basePe, res: base, ring: 'border-brand-200 bg-brand-50/60', txt: 'text-brand-700' },
+        { title: 'Bull Case', pe: bullPe, res: bull, ring: 'border-emerald-200 bg-emerald-50/50', txt: 'text-emerald-700' }
+      ].map(c => `
+        <div class="rounded-xl border ${c.ring} p-3.5">
+          <span class="text-xs font-semibold uppercase tracking-wider ${c.txt}">${c.title} (${c.pe.toFixed(1)}x)</span>
+          <p class="text-xl font-bold text-slate-900 mt-1 tabular-nums">${fmtUSD(c.res.fPrice)}</p>
+          <p class="text-xs text-slate-600 mt-0.5 tabular-nums">CAGR: <strong class="${c.res.cagr >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${c.res.cagr >= 0 ? '+' : ''}${c.res.cagr.toFixed(1)}%</strong></p>
+          <p class="text-xs text-slate-500 mt-0.5 tabular-nums">PV Today (${(disc * 100).toFixed(0)}% disc): ${fmtUSD(c.res.pv)}</p>
+        </div>
+      `).join('');
+
+      const labels = Array.from({ length: years + 1 }, (_, t) => `Yr ${t}`);
+      const seriesFor = (targetPe) => labels.map((_, t) => {
+        const interpPe = impliedPe + ((targetPe - impliedPe) * (t / years));
+        return +(eps * Math.pow(1 + g, t) * interpPe).toFixed(2);
+      });
+
+      if (charts.peProj) charts.peProj.destroy();
+      charts.peProj = new Chart(document.getElementById('chart-pe-projection'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { label: `Bull (${bullPe}x)`, data: seriesFor(bullPe), borderColor: '#10b981', tension: 0.25, fill: false },
+            { label: `Base (${basePe}x)`, data: seriesFor(basePe), borderColor: '#4f46e5', borderWidth: 2.5, tension: 0.25, fill: false },
+            { label: `Bear (${bearPe}x)`, data: seriesFor(bearPe), borderColor: '#f43f5e', borderDash: [5, 5], tension: 0.25, fill: false }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { ticks: { callback: v => '$' + v }, grid: { color: '#f1f5f9' } },
+            x: { grid: { display: false } }
+          },
+          plugins: {
+            legend: { position: 'top', align: 'end', labels: { boxWidth: 12, font: { size: 11 } } },
+            tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtUSD(ctx.raw)}` } }
+          }
+        }
+      });
+
+      const gSteps = [-0.05, -0.025, 0, 0.025, 0.05].map(d => g + d);
+      const peSteps = [-6, -3, 0, 3, 6].map(d => Math.max(5, basePe + d));
+      document.getElementById('pe-sensitivity-table').innerHTML = `
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-200 text-slate-600">
+            <th class="py-2.5 px-3 text-left">EPS Growth \ Exit P/E</th>
+            ${peSteps.map(pe => `<th class="py-2.5 px-3">${pe.toFixed(1)}x</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          ${gSteps.map(gr => `
+            <tr>
+              <td class="py-2.5 px-3 text-left font-semibold text-slate-700 bg-slate-50/60 tabular-nums">${(gr * 100).toFixed(1)}%</td>
+              ${peSteps.map(pe => {
+                const p = eps * Math.pow(1 + gr, years) * pe;
+                const ret = ((p - price) / price) * 100;
+                const isCenter = Math.abs(gr - g) < 0.0001 && Math.abs(pe - basePe) < 0.01;
+                const bg = isCenter ? 'bg-brand-50 ring-1 ring-inset ring-brand-300 font-bold' : ret >= 30 ? 'bg-emerald-50/70' : ret < 0 ? 'bg-rose-50/60' : '';
+                return `<td class="py-2.5 px-3 tabular-nums ${bg}">
+                  <div class="text-slate-900">${fmtUSD(p)}</div>
+                  <div class="text-xs ${ret >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${ret >= 0 ? '+' : ''}${ret.toFixed(1)}%</div>
+                </td>`;
+              }).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      `;
+    }
+
+    function openAnalyzeModal(ticker) {
+      populatePeSelect();
+      document.getElementById('pe-stock-select').value = ticker;
+      const s = stocks.find(x => x.ticker === ticker);
+      if (s) document.getElementById('analyze-modal-title').textContent = `${s.ticker} (${s.name}) — P/E Price Forecast`;
+      document.getElementById('modal-analyze-stock').classList.remove('hidden');
+      loadTickerIntoForecast(ticker);
+      lucide.createIcons();
+    }
+
+    document.getElementById('pe-stock-select').addEventListener('change', (e) => {
+      const s = stocks.find(x => x.ticker === e.target.value);
+      if (s) document.getElementById('analyze-modal-title').textContent = `${s.ticker} (${s.name}) — P/E Price Forecast`;
+      loadTickerIntoForecast(e.target.value);
+    });
+    ['pe-current-price', 'pe-current-eps', 'pe-horizon', 'pe-eps-growth', 'pe-bear', 'pe-base', 'pe-bull', 'pe-discount-rate'].forEach(id => {
+      document.getElementById(id).addEventListener('input', renderPeForecast);
+    });
+
+    // ==================== ADD STOCK HANDLERS (AUTO-PULL VIA FINNHUB) ====================
+    function openAddStockModal() {
+      document.getElementById('form-add-stock').reset();
+      const hasKey = !!loadFinnhubKey().trim();
+      const hint = document.getElementById('add-stock-api-hint');
+      hint.innerHTML = hasKey
+        ? 'Finnhub API connected — just enter a ticker to automatically pull company info, live price, 52W range, and P/E.'
+        : 'Tip: Add your free Finnhub key (key icon in header) to auto-pull live data by ticker, or enter a price manually below.';
+      document.getElementById('modal-add-stock').classList.remove('hidden');
+    }
+    document.getElementById('btn-add-stock').addEventListener('click', openAddStockModal);
+
+    document.getElementById('form-add-stock').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const ticker = document.getElementById('add-ticker').value.trim().toUpperCase();
+      if (!ticker) return;
+      if (stocks.some(x => x.ticker === ticker)) {
+        showToast(`${ticker} is already on your dashboard`, 'error');
+        return;
+      }
+
+      const key = loadFinnhubKey().trim();
+      let price = parseFloat(document.getElementById('add-price').value);
+      let low52 = parseFloat(document.getElementById('add-low').value);
+      let high52 = parseFloat(document.getElementById('add-high').value);
+      let pe = parseFloat(document.getElementById('add-pe').value);
+      let fwdPe = parseFloat(document.getElementById('add-fwdpe').value);
+      let name = document.getElementById('add-name').value.trim();
+      let sector = document.getElementById('add-sector').value.trim();
+      let exchange = 'NASDAQ';
+
+      const submitBtn = document.getElementById('btn-submit-add-stock');
+      submitBtn.disabled = true;
+      submitBtn.textContent = key ? 'Pulling data...' : 'Adding...';
+
+      try {
+        if (key) {
+          const [qResp, mResp, pResp] = await Promise.all([
+            fetchFinnhubJson(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(ticker)}&token=${encodeURIComponent(key)}`),
+            fetchFinnhubJson(`https://finnhub.io/api/v1/stock/metric?symbol=${encodeURIComponent(ticker)}&metric=all&token=${encodeURIComponent(key)}`),
+            fetchFinnhubJson(`https://finnhub.io/api/v1/stock/profile2?symbol=${encodeURIComponent(ticker)}&token=${encodeURIComponent(key)}`)
+          ]);
+          if (!qResp.ok && qResp.status === 403) throw new Error(qResp.data.error || 'Finnhub access denied (403)');
+          const qData = qResp.ok ? qResp.data : {};
+          const metrics = (mResp.ok && mResp.data && mResp.data.metric) ? mResp.data.metric : {};
+          const pData = pResp.ok ? pResp.data : {};
+
+          if (!Number.isFinite(price) && Number.isFinite(qData.c) && qData.c > 0) price = +qData.c.toFixed(2);
+          if (!Number.isFinite(high52) && Number.isFinite(metrics['52WeekHigh']) && metrics['52WeekHigh'] > 0) high52 = +metrics['52WeekHigh'].toFixed(2);
+          if (!Number.isFinite(low52) && Number.isFinite(metrics['52WeekLow']) && metrics['52WeekLow'] > 0) low52 = +metrics['52WeekLow'].toFixed(2);
+          const apiPe = metrics.peTTM || metrics.peNormalizedAnnual;
+          if (!Number.isFinite(pe) && Number.isFinite(apiPe) && apiPe > 0) pe = +apiPe.toFixed(2);
+          if (!name && pData.name) name = pData.name;
+          if (!sector && pData.finnhubIndustry) sector = pData.finnhubIndustry;
+          if (pData.exchange && pData.exchange.includes('NEW YORK')) exchange = 'NYSE';
+        }
+
+        if (!Number.isFinite(price) || price <= 0) {
+          showToast(key ? `Could not find quote for ${ticker}` : 'Enter a Price or connect your Finnhub key first', 'error');
+          return;
+        }
+
+        const finalPe = Number.isFinite(pe) && pe > 0 ? pe : 25;
+        const newStock = {
+          ticker,
+          name: name || ticker,
+          sector: sector || 'Equities',
+          price,
+          low52: Number.isFinite(low52) && low52 > 0 ? low52 : +(price * 0.8).toFixed(2),
+          high52: Number.isFinite(high52) && high52 > 0 ? high52 : +(price * 1.2).toFixed(2),
+          pe: finalPe,
+          fwdPe: Number.isFinite(fwdPe) && fwdPe > 0 ? fwdPe : finalPe,
+          nextQuarter: document.getElementById('add-nextq').value.trim() || 'Upcoming Quarter',
+          nextEarningsEst: document.getElementById('add-nextest').value.trim() || 'Check Estimates link or Edit to set',
+          financeSlug: `${ticker}:${exchange}`,
+          saSlug: ticker.toLowerCase()
+        };
+
+        stocks.push(newStock);
+        saveStocks();
+        document.getElementById('modal-add-stock').classList.add('hidden');
+        renderAll();
+        showToast(`Added ${ticker} (${fmtUSD(price)}) to dashboard`, 'success');
+      } catch (err) {
+        showToast(err.message || `Failed to pull data for ${ticker}`, 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Pull & Add Stock';
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      updateGistStatusUI();
+      renderAll();
+    });
+  </script>
+</body>
+</html>

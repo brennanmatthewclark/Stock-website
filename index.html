@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="robots" content="noindex, nofollow" />
-  <meta name="theme-color" content="#166b3c" />
+  <meta name="theme-color" content="#0e7c5a" />
   <title>Stock Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -24,28 +24,30 @@
   <style>
     /* ===================== theme (all colors live here) ===================== */
     :root {
-      --bg: #f5f9f6; --sf: #ffffff; --bd: #e1e9e3; --ch: #eef3ef;
-      --tx: #0f1b14; --tx2: #3d4d43; --mu: #68786d;
-      --br: #166b3c; --br-soft: #e3f4ea; --on-br: #ffffff;
-      --up: #168a4a; --dn: #d23a3a;
-      --cheap-bg: #dcf4e5; --cheap-tx: #11693a;
+      --bg: #f4f7fb; --sf: #ffffff; --bd: #dfe6f0; --ch: #eef2f8;
+      --tx: #0f1b2d; --tx2: #3a4a63; --mu: #52627a;
+      --br: #0e7c5a; --br-soft: #e1f3ec; --on-br: #ffffff;
+      --up: #0e7c5a; --dn: #b91c1c;
+      --ac: #1d5fc9; --bear: #b45309; --bull: #4d7c0f;
+      --cheap-bg: #dcf4e9; --cheap-tx: #0b6a4b;
       --warn-bg: #fcefcf; --warn-tx: #855400; --warn-bd: #f0d9a0;
       --info-bg: #e4eefb; --info-tx: #1d4f91; --info-bd: #c3d6f0;
       --bad-bg: #fde4e4; --bad-tx: #a02828;
-      --mute-bg: #eaeeeb; --mute-tx: #4a5750;
-      --shadow: 0 1px 2px rgba(20, 40, 28, .06);
+      --mute-bg: #e8edf4; --mute-tx: #475569;
+      --shadow: 0 1px 2px rgba(15, 27, 45, .06);
       color-scheme: light;
     }
     html.dark {
-      --bg: #070b08; --sf: #0e150f; --bd: #1d2c22; --ch: #16221a;
-      --tx: #e8f1ea; --tx2: #c6d6cb; --mu: #8aa092;
-      --br: #3fd47a; --br-soft: rgba(63, 212, 122, .13); --on-br: #06210f;
-      --up: #3fd47a; --dn: #ff6b6b;
-      --cheap-bg: rgba(63, 212, 122, .16); --cheap-tx: #5ee592;
+      --bg: #0b1220; --sf: #121b2e; --bd: #24324d; --ch: #1a2640;
+      --tx: #e6edf7; --tx2: #c3d0e4; --mu: #9fb0c8;
+      --br: #34d399; --br-soft: rgba(52, 211, 153, .13); --on-br: #04241a;
+      --up: #34d399; --dn: #f87171;
+      --ac: #60a5fa; --bear: #fb923c; --bull: #a3e635;
+      --cheap-bg: rgba(52, 211, 153, .16); --cheap-tx: #6ee7b7;
       --warn-bg: rgba(245, 176, 60, .15); --warn-tx: #f6c365; --warn-bd: rgba(245, 176, 60, .35);
-      --info-bg: rgba(90, 162, 240, .14); --info-tx: #8fc1f7; --info-bd: rgba(90, 162, 240, .35);
-      --bad-bg: rgba(255, 107, 107, .15); --bad-tx: #ff9a9a;
-      --mute-bg: #1a261e; --mute-tx: #9db2a4;
+      --info-bg: rgba(96, 165, 250, .14); --info-tx: #93c5fd; --info-bd: rgba(96, 165, 250, .35);
+      --bad-bg: rgba(248, 113, 113, .15); --bad-tx: #fca5a5;
+      --mute-bg: #1a2640; --mute-tx: #a9b8ce;
       --shadow: none;
       color-scheme: dark;
     }
@@ -224,7 +226,7 @@
     .field input[type=number] { width: 100%; height: 40px; padding: 0 12px; border: 1px solid var(--bd); border-radius: 11px; background: var(--bg); font-variant-numeric: tabular-nums; }
     .f2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     input[type=range] { width: 100%; accent-color: var(--br); height: 28px; }
-    input[type=range].bear { accent-color: #e8742c; } input[type=range].bull { accent-color: #6fb81e; }
+    input[type=range].bear { accent-color: var(--bear); } input[type=range].bull { accent-color: var(--bull); }
     .minibox { background: var(--bg); border: 1px solid var(--bd); border-radius: 11px; padding: 8px 12px; }
     .minibox span { font-size: 11.5px; color: var(--mu); display: block; } .minibox b { font-size: 16px; }
     .note { font-size: 12px; background: var(--warn-bg); color: var(--warn-tx); border: 1px solid var(--warn-bd); border-radius: 10px; padding: 8px 10px; }
@@ -247,8 +249,28 @@
     .anctl select.sel { width: 100%; min-width: 120px; }
     .remind { flex: 1 1 160px; font-size: 12px; font-weight: 600; color: var(--br); line-height: 1.3; }
     .note + .note { margin-top: 6px; } .an > .note { margin-bottom: 10px; }
-    .an > .hint { margin: 8px 0 12px; }
-    .an > .panel, .an > .pricebar { margin-top: 12px; }
+    #an-inputs > .hint { margin: 8px 0 12px; } #an-inputs > .note { margin-bottom: 10px; }
+    #an-inputs > .panel, .an > .pricebar, .an > .sumcard { margin-top: 12px; } .an > .qs { margin-bottom: 12px; }
+    .qs .hint { margin-top: 9px; line-height: 1.4; }
+    .seg3 { display: flex; gap: 8px; margin-top: 10px; }
+    .seg3 button { flex: 1; height: 46px; border-radius: 12px; border: 1px solid var(--bd); font-weight: 600; font-size: 13px; color: var(--tx); }
+    .seg3 button.on { background: var(--br); border-color: var(--br); color: var(--on-br); }
+    .sumcard { display: flex; align-items: center; gap: 12px; } .sumtxt { flex: 1; min-width: 0; } .sumtxt p { font-size: 12.5px; margin-top: 5px; line-height: 1.5; }
+    .btn.ghostb { border: 1px solid var(--br); color: var(--br); height: 44px; }
+    .verdict { background: color-mix(in srgb, var(--ac) 12%, transparent); border: 1px solid color-mix(in srgb, var(--ac) 40%, transparent); border-radius: 16px; padding: 14px 16px; }
+    .vtop { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .vlab { font-size: 11.5px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; color: var(--ac); }
+    .vchip { font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 99px; white-space: nowrap; } .vchip.ok { background: var(--ac); color: var(--bg); } .vchip.no { background: var(--dn); color: var(--bg); }
+    .vmain { font-size: 25px; font-weight: 700; letter-spacing: -.4px; margin-top: 8px; } .vsub { font-size: 13px; color: var(--mu); margin-top: 4px; line-height: 1.4; }
+    .pvbar { position: relative; height: 62px; margin-top: 6px; }
+    .pvtrack { position: absolute; left: 0; right: 0; top: 30px; height: 6px; border-radius: 9px; background: linear-gradient(90deg, color-mix(in srgb, var(--bear) 45%, transparent), color-mix(in srgb, var(--ac) 45%, transparent), color-mix(in srgb, var(--bull) 45%, transparent)); }
+    .pvm { position: absolute; top: 24px; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; border: 3px solid var(--sf); box-shadow: 0 0 0 1.5px var(--mu); }
+    .pvnow { position: absolute; top: 20px; width: 3px; height: 26px; margin-left: -1px; border-radius: 2px; background: var(--tx); }
+    .pvlab { position: absolute; top: 2px; transform: translateX(-30%); font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .pvleg { display: flex; gap: 6px; } .pvleg > div { flex: 1; min-width: 0; } .pvleg span { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--mu); } .pvleg span i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; } .pvleg b { display: block; font-size: 13.5px; margin-top: 2px; }
+    .pin { position: sticky; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 12; display: flex; align-items: center; gap: 12px; margin-top: 14px; background: var(--sf); border: 1px solid var(--br); border-radius: 16px; padding: 10px 12px 10px 14px; box-shadow: 0 6px 20px rgba(0, 0, 0, .25); }
+    .pintxt { flex: 1; min-width: 0; } .pintxt > span { display: block; font-size: 11px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; color: var(--mu); } .pintxt b { font-size: 16px; }
+    .pin .btn { height: 44px; min-width: 84px; }
     .an[data-mode="1"] .lohi { display: none; }
     .atbl { table-layout: auto; }
     .atbl thead { background: var(--br); color: var(--on-br); }
@@ -371,8 +393,8 @@
   <script>
     // ============================ constants & helpers ============================
     const CHART_THEMES = {
-      light: { primary: '#16883f', orange: '#eb6834', third: '#2a78d6', lime: '#84cc16', up: '#168a4a', dn: '#d23a3a', grid: '#e1ebe4', axis: '#bccdc2', ink2: '#4a5a50', muted: '#7f9086' },
-      dark:  { primary: '#34d36b', orange: '#ff8a5c', third: '#5aa2f0', lime: '#c4f06a', up: '#3fd47a', dn: '#ff6b6b', grid: '#1b2a20', axis: '#2c4636', ink2: '#a7bdaf', muted: '#7f9889' }
+      light: { primary: '#0e7c5a', orange: '#c2570c', third: '#1d5fc9', lime: '#4d7c0f', up: '#0e7c5a', dn: '#b91c1c', grid: '#e1e8f2', axis: '#c3cedf', ink2: '#3a4a63', muted: '#6b7c95' },
+      dark:  { primary: '#34d399', orange: '#fb923c', third: '#60a5fa', lime: '#a3e635', up: '#34d399', dn: '#f87171', grid: '#1b2840', axis: '#2b3b58', ink2: '#a9b8ce', muted: '#7f90aa' }
     };
     const C = Object.assign({}, CHART_THEMES.light);
     const OUTLIER_PE = 100;
@@ -804,14 +826,28 @@
       if (mMid <= 0) notes.push('The recent net profit margin is zero or negative, so the profit-margin method cannot give a price yet. Raise the profit margin assumptions to model this stock.');
       if (fMid <= 0) notes.push('The recent free cash flow margin is zero or negative, so the cash-flow method cannot give a price yet. Raise the free cash flow margin assumptions to model it.');
       return {
-        years: 5, mode: 3, analyzed: false, open: { pm: false, cf: false, info: false }, notes,
+        years: 5, mode: 3, analyzed: false, collapsed: false, preset: 'mod', open: { pm: false, cf: false, info: false }, notes,
         g: [gMid - gSp, gMid, gMid + gSp], m: [mMid - mSp, mMid, mMid + mSp], f: [fMid - fSp, fMid, fMid + fSp],
         pe, pf: pe.slice(), r: [10, 10, 10],
         hint: seeded ? 'Base growth starts at the consensus next-year revenue growth (capped at 40%); it usually fades over a long horizon, so consider lowering it.' : 'No consensus growth available; Base growth starts at the historical rate.'
       };
     }
 
-    // One case (0 = Low, 1 = Mid, 2 = High). Future revenue x margin x multiple, per share, then discounted back.
+    // Quick-start presets: Moderate = the data-based starting point; the others shift it by a fixed amount.
+    const PRESETS = {
+      cons: { name: 'Conservative', g: -4, m: -3, mult: 0.8, r: 12, text: 'Growth -4 pts, margins -3 pts, multiples -20%, 12% desired return.' },
+      mod:  { name: 'Moderate', g: 0, m: 0, mult: 1, r: 10, text: 'Starts from consensus growth, recent margins and the current forward P/E, with a 10% desired return.' },
+      opt:  { name: 'Optimistic', g: 4, m: 2, mult: 1.2, r: 8, text: 'Growth +4 pts, margins +2 pts, multiples +20%, 8% desired return.' }
+    };
+    function applyPreset(s, v, key) {
+      const P = PRESETS[key], d = forecastDefaults(s);
+      v.g = d.g.map(x => r2(clamp(x + P.g, -10, 60)));
+      v.m = d.m.map(x => r2(x + P.m)); v.f = d.f.map(x => r2(x + P.m));
+      v.pe = d.pe.map(x => r2(clamp(x * P.mult, 5, 250))); v.pf = d.pf.map(x => r2(clamp(x * P.mult, 5, 250)));
+      v.r = [P.r, P.r, P.r]; v.preset = key;
+    }
+
+    // One case (0 = Bear, 1 = Base, 2 = Bull). Future revenue x margin x multiple, per share, then discounted back.
     function runModel(s, v, i) {
       const H = histStats(s), n = v.years;
       const shares = isNum(s.marketCap) && isNum(s.price) && s.price > 0 ? s.marketCap / s.price : null;
@@ -839,6 +875,10 @@
       const slider = (cls, label, id, min, max, step, extra = '', unit = '') => `<div class="${cls}"><div class="slab"><span>${label}</span><span class="valbox"><input type="number" inputmode="decimal" step="any" id="${id}-num" aria-label="${label}, type an exact value" /><em>${unit}</em></span></div><input type="range" ${extra ? `class="${extra}"` : ''} id="${id}" min="${min}" max="${max}" step="${step}" /></div>`;
       $('tab-content').innerHTML = `
         <div class="an" id="an-root" data-mode="${v.mode}">
+          <div class="card qs"><div class="ct">Quick start</div>
+            <div class="seg3" role="group" aria-label="Quick start presets">${Object.keys(PRESETS).map(k => `<button type="button" data-preset="${k}">${PRESETS[k].name}</button>`).join('')}</div>
+            <p class="hint" id="an-preset-text"></p></div>
+          <div id="an-inputs">
           <div class="anctl">
             <div class="field"><label for="an-years">Years of Analysis</label><select class="sel" id="an-years">${Array.from({ length: 10 }, (_, k) => `<option value="${k + 1}">${k + 1}</option>`).join('')}</select></div>
             <div class="field"><label for="an-mode">Number of Assumption Entries</label><select class="sel" id="an-mode"><option value="3">3 (Bear, Base and Bull)</option><option value="1">1 (Base only)</option></select></div>
@@ -865,11 +905,14 @@
             ${slider('', 'Desired annual return (all cases)', 'an-s-r', 1, 25, 0.5, '', '%')}
           </div>
 
-          <div class="pricebar">
+          </div>
+          <div class="card sumcard" id="an-summary" hidden><div class="sumtxt"><div class="ct" style="justify-content:flex-start">Your assumptions</div><p id="an-sum-text"></p></div><button type="button" class="btn ghostb" data-collapse="open">Edit</button></div>
+          <div class="pricebar" id="an-pricebar">
             <div class="pbox"><span>Current price</span><b class="tnum">${fmtUSD(s.price)}</b>${isNum(ch) ? `<span class="${cls(ch)} tnum">${ch >= 0 ? '↑' : '↓'} ${dollar < 0 ? '-' : ''}$${Math.abs(dollar).toFixed(2)} (${fmtPct(ch, 2)})</span>` : ''}</div>
             <button type="button" class="btn pri" id="an-run">Analyze</button>
           </div>
           <div id="an-results" class="stack"></div>
+          <div class="pin" id="an-pin" hidden><div class="pintxt"><span>Base case</span><b id="an-pin-val"></b></div><button type="button" class="btn pri" id="an-pin-btn" data-collapse="toggle"></button></div>
         </div>`;
       refreshAnalysis('');
     }
@@ -885,6 +928,13 @@
       setIf('an-years', String(v.years)); setIf('an-mode', String(v.mode));
       ['pe', 'pf'].forEach(k => [0, 1, 2].forEach(i => { setIf(`an-s-${k}-${i}`, v[k][i]); setIf(`an-s-${k}-${i}-num`, numText(v[k][i])); }));
       setIf('an-s-r', v.r[1]); setIf('an-s-r-num', numText(v.r[1]));
+      const done = v.analyzed && v.collapsed;
+      $('an-inputs').hidden = done; $('an-summary').hidden = !done; $('an-pricebar').hidden = v.analyzed; $('an-pin').hidden = !v.analyzed;
+      $('an-pin-btn').textContent = v.collapsed ? 'Edit' : 'Done';
+      document.querySelectorAll('[data-preset]').forEach(b => { const on = b.dataset.preset === v.preset; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+      $('an-preset-text').textContent = v.preset ? PRESETS[v.preset].text : 'Custom: you changed something after a preset. Pick a preset to start over.';
+      const cs = v.mode === 1 ? [1] : [0, 1, 2], j = (a, u) => cs.map(i => r1(a[i])).join(' / ') + u;
+      $('an-sum-text').innerHTML = `${v.years} years · Growth ${j(v.g, '%')} · Margin ${j(v.m, '%')}<br>P/E ${j(v.pe, 'x')} · P/FCF ${j(v.pf, 'x')} · ${r1(v.r[1])}% desired return`;
       renderResults();
     }
 
@@ -898,6 +948,7 @@
       else if ((m = /^an-s-(pe|pf)-([012])(?:-num)?$/.exec(id))) { if (!isNum(val)) return; v[m[1]][+m[2]] = val; }
       else if ((m = /^an-(g|m|f)-([012])$/.exec(id))) { if (!isNum(val)) return; v[m[1]][+m[2]] = val; }   // ignore empty or half-typed numbers
       else return;
+      if (id !== 'an-years' && id !== 'an-mode') v.preset = null;
       refreshAnalysis(id);
     }
 
@@ -914,7 +965,26 @@
       const detail = (k, r) => !r[k] ? '<span class="mu">Not meaningful with these inputs.</span>' : `<div>Revenue in ${n} yr: ${fmtBig(r.rev)}</div><div>${k === 'pm' ? 'Net income' : 'Free cash flow'}: ${fmtBig(r[k].income)}</div><div>× ${r[k].mult.toFixed(1)}x = ${fmtBig(r[k].income * r[k].mult)}</div><div>Share price then: <b>${fmtUSD(r[k].fut)}</b></div><div>Return/yr: <b class="${cls(r[k].ret)}">${r[k].ret.toFixed(2)}%</b></div>`;
       const retCell = (r, i) => { const a = avgRet(r); return isNum(a) ? `<b class="tnum ${a >= v.r[i] ? 'up' : 'dn'}">${a.toFixed(2)}%</b>` : '<span class="mu">n/m</span>'; };
       const span = cols.length + 1;
+      const fairAvg = (r) => mean([r.pm?.fair, r.cf?.fair]);
+      const fairB = fairAvg(res[1]), retB = avgRet(res[1]), rB = r1(v.r[1]);
+      let verdict;
+      if (!isNum(fairB)) verdict = '<div class="verdict"><div class="vtop"><span class="vlab">Base case</span></div><div class="vmain">Not enough to value yet</div><div class="vsub">The Base column needs a positive margin and multiple.</div></div>';
+      else {
+        const under = fairB >= s.price;
+        verdict = `<div class="verdict"><div class="vtop"><span class="vlab">Base case verdict</span><span class="vchip ${under ? 'ok' : 'no'}">${under ? 'Under base value' : 'Above base value'}</span></div>
+          <div class="vmain tnum">Worth up to ${fmtUSD(fairB)}</div>
+          <div class="vsub">${under ? `That is ${((fairB / s.price - 1) * 100).toFixed(0)}% above today's ${fmtUSD(s.price)}, and it earns your ${rB}% a year.` : `Today's ${fmtUSD(s.price)} is ${((s.price / fairB - 1) * 100).toFixed(0)}% above that. Buying now would earn about ${isNum(retB) ? retB.toFixed(1) : '—'}% a year against your ${rB}% target.`}</div></div>`;
+      }
+      const pts = cols.map(i => ({ i, v: fairAvg(res[i]) })).filter(p => isNum(p.v));
+      const hiV = Math.max(s.price, ...pts.map(p => p.v)) * 1.1, pos = (x) => Math.min(97, Math.max(3, x / hiV * 100));
+      const CC = ['var(--bear)', 'var(--ac)', 'var(--bull)'];
+      const pvBar = !pts.length ? '' : `<div class="card"><div class="ct">Price vs. value (average of both methods)</div>
+        <div class="pvbar" role="img" aria-label="Today's price ${fmtUSD(s.price)} against ${pts.map(p => AN_NAMES[p.i] + ' ' + fmtUSD(p.v)).join(', ')}"><div class="pvtrack"></div>
+          ${pts.map(p => `<i class="pvm" style="left:${pos(p.v)}%;background:${CC[p.i]}"></i>`).join('')}<i class="pvnow" style="left:${pos(s.price)}%"></i><span class="pvlab" style="left:${pos(s.price)}%">Now</span></div>
+        <div class="pvleg tnum"><div><span><i style="background:var(--tx)"></i>Now</span><b>${fmtUSD(s.price)}</b></div>${pts.map(p => `<div><span><i style="background:${CC[p.i]}"></i>${AN_NAMES[p.i]}</span><b class="${p.v >= s.price ? 'up' : 'dn'}">${fmtUSD(p.v)}</b></div>`).join('')}</div></div>`;
+      $('an-pin-val').innerHTML = isNum(fairB) ? `${fmtUSD(fairB)} · <span class="${cls(retB - rB)}">${isNum(retB) ? retB.toFixed(1) : '—'}%/yr</span>` : 'n/m';
       box.innerHTML = `
+        ${verdict}${pvBar}
         <div class="boxed scroll"><table class="tbl atbl res">
           <thead><tr class="grp"><th></th><th colspan="${cols.length}"><span>My Assumptions</span></th></tr><tr><th></th>${cols.map(i => `<th>${AN_NAMES[i]}</th>`).join('')}</tr></thead>
           <tbody>
@@ -933,7 +1003,7 @@
       // projected price path: steady compounding from today's price to each case's end price
       const labels = Array.from({ length: n + 1 }, (_, t) => `Yr ${t}`);
       const path = (end) => labels.map((_, t) => +(s.price * Math.pow(end / s.price, t / n)).toFixed(2));
-      const colors = [C.orange, C.primary, C.lime];
+      const colors = [C.orange, C.third, C.lime];
       const sets = cols.filter(i => res[i] && res[i].pm).map(i => ({ label: `${AN_NAMES[i]} (${v.pe[i]}x)`, data: path(res[i].pm.fut), borderColor: colors[i], backgroundColor: colors[i], borderWidth: i === 1 ? 2.5 : 2, pointRadius: 3, tension: 0.25 }));
       if (sets.length) {
         charts.proj = new Chart($('chart-pe-projection'), {
@@ -1112,7 +1182,11 @@
     $('view-stock').addEventListener('click', (e) => {
       const tab = e.target.closest('#tab-bar a[data-tab]');
       if (tab) { e.preventDefault(); setTab(tab.dataset.tab); return; }
-      if (e.target.closest('#an-run')) { const v = forecastVals[selected.ticker]; const first = !v.analyzed; v.analyzed = true; renderResults(); if (first) $('an-results').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+      const pre = e.target.closest('[data-preset]');
+      if (pre) { const v = forecastVals[selected.ticker]; applyPreset(selected, v, pre.dataset.preset); refreshAnalysis(''); return; }
+      const col = e.target.closest('[data-collapse]');
+      if (col) { const v = forecastVals[selected.ticker]; v.collapsed = col.dataset.collapse === 'open' ? false : !v.collapsed; refreshAnalysis(''); if (v.collapsed) window.scrollTo({ top: 0 }); return; }
+      if (e.target.closest('#an-run')) { const v = forecastVals[selected.ticker]; v.analyzed = true; v.collapsed = true; refreshAnalysis(''); $('an-results').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
       const ex = e.target.closest('[data-ex]');
       if (ex) { const v = forecastVals[selected.ticker]; v.open[ex.dataset.ex] = !v.open[ex.dataset.ex]; renderResults(); return; }
       const rng = e.target.closest('[data-range]');

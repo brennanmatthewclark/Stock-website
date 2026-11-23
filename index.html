@@ -80,6 +80,9 @@
     .ttl span { font-size: 11.5px; color: var(--mu); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .iconbtn { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--bd); background: var(--sf); display: grid; place-items: center; color: var(--br); flex: none; }
     .iconbtn:hover { background: var(--br-soft); }
+    .iconbtn:disabled { opacity: .6; cursor: default; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .iconbtn.spin svg { animation: spin 1s linear infinite; }
     html.dark .icon-moon, html:not(.dark) .icon-sun { display: none; }
     nav.nav { display: flex; gap: 4px; padding-top: 6px; }
     nav.nav a { padding: 9px 14px; font-weight: 600; font-size: 14px; color: var(--mu); border-bottom: 2.5px solid transparent; }
@@ -323,6 +326,7 @@
         <span class="logo" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span>
         <span class="ttl"><b>Stock Dashboard</b><span id="last-updated">Loading…</span></span>
       </a>
+      <button type="button" class="iconbtn" id="btn-refresh" aria-label="Refresh data" title="Fetch fresh data now (takes a few minutes)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button>
       <button type="button" class="iconbtn" id="btn-add-stock" aria-label="Add a stock" title="Add a stock"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
       <button type="button" class="iconbtn" id="btn-theme" aria-label="Toggle dark mode" aria-pressed="false" title="Switch between light and dark mode">
         <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
@@ -484,6 +488,7 @@
         showBanner();
         route(silent);
         reconcilePending();
+        checkRefresh();
       } catch (err) {
         if (silent) return;
         $('last-updated').textContent = 'No data loaded';
@@ -1316,6 +1321,32 @@
       try { await addTicker($('add-ticker').value); closeAdd(); renderPending(); }
       catch (err) { setStatus(err.message, true); }
       finally { btn.disabled = !workerUrl; }
+    });
+
+
+    // ============================ refresh now ============================
+    // Asks the middleman to start the update workflow, then watches for new data to land (usually 2-3 minutes).
+    const REFRESH_KEY = 'stockdash_refresh_v1';
+    let refreshTimer = null;
+    function checkRefresh() {
+      const r = lsGet(REFRESH_KEY, null);
+      const btn = $('btn-refresh');
+      if (r && (meta.generatedAt !== r.since || Date.now() - r.at > 15 * 60 * 1000)) { lsSet(REFRESH_KEY, null); }
+      const on = !!lsGet(REFRESH_KEY, null);
+      btn.disabled = on;
+      btn.classList.toggle('spin', on);
+      if (on) {
+        $('last-updated').textContent = 'Refreshing… this takes a few minutes';
+        if (!refreshTimer) refreshTimer = setInterval(() => { if (lsGet(REFRESH_KEY, null)) loadData(true); else { clearInterval(refreshTimer); refreshTimer = null; } }, 20000);
+      }
+    }
+    $('btn-refresh').addEventListener('click', async () => {
+      const btn = $('btn-refresh'); btn.disabled = true;
+      try {
+        await callWorker('refresh');
+        lsSet(REFRESH_KEY, { since: meta.generatedAt || null, at: Date.now() });
+      } catch (err) { alert(err.message); btn.disabled = false; return; }
+      checkRefresh();
     });
 
     // ============================ start ============================

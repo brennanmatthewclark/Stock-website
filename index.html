@@ -241,6 +241,45 @@
     .sens td.center { outline: 2px solid var(--br); outline-offset: -2px; font-weight: 700; }
     .sens td { font-size: 12.5px; text-align: center !important; } .sens td small { display: block; font-size: 11px; }
 
+    /* analysis (reference-style table) */
+    .anctl { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; margin-bottom: 10px; }
+    .anctl .field { min-width: 0; }
+    .anctl select.sel { width: 100%; min-width: 120px; }
+    .remind { flex: 1 1 160px; font-size: 12px; font-weight: 600; color: var(--br); line-height: 1.3; }
+    .note + .note { margin-top: 6px; } .an > .note { margin-bottom: 10px; }
+    .an > .hint { margin: 8px 0 12px; }
+    .an > .panel, .an > .pricebar { margin-top: 12px; }
+    .an[data-mode="1"] .lohi { display: none; }
+    .atbl { table-layout: auto; }
+    .atbl thead { background: var(--br); color: var(--on-br); }
+    .atbl thead th { text-align: center; font-size: 12px; text-transform: none; letter-spacing: 0; padding: 9px 6px; }
+    .atbl tr.grp th { padding-bottom: 2px; font-size: 12.5px; }
+    .atbl tr.grp th span { display: block; border-bottom: 1px solid rgba(255, 255, 255, .55); padding-bottom: 3px; }
+    html.dark .atbl tr.grp th span { border-bottom-color: rgba(0, 0, 0, .45); }
+    .atbl td { text-align: center; padding: 9px 6px; }
+    .atbl .rowlab { text-align: left; white-space: normal; min-width: 96px; line-height: 1.2; }
+    .atbl .rowlab small { display: block; font-weight: 500; font-size: 11px; color: var(--mu); margin-top: 2px; }
+    .atbl input[type=number] { width: 100%; min-width: 46px; max-width: 78px; height: 34px; padding: 0 4px; border: 1px solid var(--bd); border-radius: 8px; background: var(--bg); text-align: center; font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+    .atbl input[type=number]:focus { border-color: var(--br); box-shadow: 0 0 0 3px var(--br-soft); outline: 0; }
+    .atbl.res td { white-space: nowrap; }
+    .atbl tr.det td { text-align: center; font-size: 12px; color: var(--tx2); white-space: normal; line-height: 1.5; vertical-align: top; }
+    .atbl tr.det td.rowlab { color: var(--mu); }
+    .plus { width: 22px; height: 22px; border-radius: 50%; background: var(--tx); color: var(--bg); font-weight: 700; font-size: 14px; line-height: 1; display: inline-grid; place-items: center; vertical-align: middle; margin-left: 4px; }
+    .plus.info { background: transparent; border: 1.5px solid var(--mu); color: var(--mu); font-size: 12px; font-style: italic; width: 20px; height: 20px; }
+    .pricebar { display: flex; gap: 12px; align-items: stretch; }
+    .pbox { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; background: var(--sf); border: 1px solid var(--bd); border-radius: 12px; padding: 10px 14px; font-size: 13px; }
+    .pbox > span:first-child { font-weight: 600; } .pbox b { font-size: 17px; } .pbox span { font-size: 12.5px; font-weight: 600; }
+    .pricebar .btn { height: auto; min-width: 110px; font-size: 15px; }
+    .tiles3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .tiles3 .minibox { padding: 8px 10px; } .tiles3 .minibox b { font-size: 17px; color: var(--br); }
+    .valbox { display: inline-flex; align-items: center; }
+    .valbox input { width: 70px; height: 30px; padding: 0 6px; text-align: right; border: 1px solid var(--bd); border-radius: 8px; background: var(--bg); color: var(--br); font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; }
+    .valbox input:focus { border-color: var(--br); box-shadow: 0 0 0 3px var(--br-soft); outline: 0; }
+    .valbox em { font-style: normal; font-weight: 700; color: var(--br); margin-left: 3px; min-width: 9px; }
+    .atbl.res td.rowlab { white-space: normal; }
+    #an-results { margin-top: 14px; scroll-margin-top: 120px; }
+    @media (max-width: 600px) { .atbl.res td { white-space: normal; font-size: 12.5px; padding: 8px 1px; } .atbl.res .plus { width: 20px; height: 20px; margin-left: 2px; font-size: 13px; } .atbl.res .rowlab { min-width: 70px; max-width: 84px; } .atbl { font-size: 11.5px; } .atbl td, .atbl th { padding: 8px 2px; } .atbl .rowlab { min-width: 62px; max-width: 74px; font-size: 11.5px; padding-left: 6px; } .atbl input[type=number] { min-width: 52px; width: 52px; padding: 0; font-size: 12.5px; } .pricebar .btn { min-width: 96px; } }
+
     /* ===================== add-stock sheet ===================== */
     .sheet-bg { position: fixed; inset: 0; background: rgba(0, 0, 0, .55); z-index: 60; display: flex; align-items: flex-end; justify-content: center; }
     .sheet { background: var(--sf); width: 100%; max-width: 460px; border-radius: 22px 22px 0 0; padding: 18px 18px calc(18px + env(safe-area-inset-bottom)); display: grid; gap: 12px; }
@@ -616,7 +655,7 @@
     }
 
     // ============================ stock page ============================
-    const TABS = [['overview', 'Overview'], ['forecast', 'P/E Forecast'], ['financials', 'Financials'], ['estimates', 'Estimates'], ['analysts', 'Analysts'], ['news', 'News'], ['history', 'P/E History']];
+    const TABS = [['overview', 'Overview'], ['forecast', 'Analysis'], ['financials', 'Financials'], ['estimates', 'Estimates'], ['analysts', 'Analysts'], ['news', 'News'], ['history', 'P/E History']];
     const PRICE_RANGES = { '1M': 21, '3M': 63, '6M': 126, '1Y': 400 };
 
     function renderStock(ticker, tab) {
@@ -730,97 +769,191 @@
         </div>`;
     }
 
-    // ---- P/E forecast tab
-    function seedGrowth(s) {
-      const e = (s.estimates?.earnings || []).find(r => r.period === '+1y');
-      if (e && isNum(e.growth)) return { g: clamp(Math.round(e.growth * 100 * 2) / 2, -5, 45), seeded: true };
-      return { g: 10, seeded: false };
+    // ---- Analysis tab: reference-style assumptions table + results, with the original slider tool kept
+    const AN_NAMES = ['Bear', 'Base', 'Bull'];
+    const r1 = (x) => Math.round(x * 10) / 10;
+    const r2 = (x) => Math.round(x * 100) / 100;
+    const roundTo = (x, step) => Math.round(x / step) * step;
+    const mean = (xs) => { const a = xs.filter(isNum); return a.length ? a.reduce((p, c) => p + c, 0) / a.length : null; };
+    const numText = (x) => isNum(x) ? String(r2(x)) : '';
+
+    // Historical figures from the saved fiscal years (Yahoo only provides about 3-4 of them).
+    function histStats(s) {
+      const rows = (s.financials || []).filter(r => isNum(r.revenue) && r.revenue > 0);
+      const n = rows.length, last = n ? rows[n - 1] : null;
+      const cagr = (k) => { if (n < 2) return null; const kk = Math.min(k, n - 1); return (Math.pow(last.revenue / rows[n - 1 - kk].revenue, 1 / kk) - 1) * 100; };
+      const ratio = (key, k) => mean(rows.slice(-k).filter(r => isNum(r[key])).map(r => r[key] / r.revenue * 100));
+      return {
+        n, fy: last ? last.year : null, rev0: last ? last.revenue : null, fcf0: last && isNum(last.fcf) ? last.fcf : null,
+        g: [cagr(1), cagr(3)], m: [ratio('netIncome', 1), ratio('netIncome', 3)], f: [ratio('fcf', 1), ratio('fcf', 3)]
+      };
     }
+
     function forecastDefaults(s) {
-      let eps, note = '';
-      if (isNum(s.trailingEps) && s.trailingEps > 0) eps = s.trailingEps;
-      else if (isNum(s.pe) && s.pe > 0) eps = +(s.price / s.pe).toFixed(2);
-      else if (isNum(s.forwardEps) && s.forwardEps > 0) { eps = s.forwardEps; note = 'No positive trailing EPS (the company is not profitable on a trailing basis), so forward EPS is used as the starting point.'; }
-      else { eps = 1; note = 'No positive EPS available. Enter your own EPS to model this stock; the number shown is a placeholder.'; }
+      const H = histStats(s);
+      const cons = (s.estimates?.revenue || []).find(r => r.period === '+1y');
+      const seeded = !!(cons && isNum(cons.growth));
+      const gMid = clamp(roundTo(seeded ? cons.growth * 100 : (isNum(H.g[1]) ? H.g[1] : 8), 0.5), -10, 40);
+      const gSp = Math.max(3, roundTo(Math.abs(gMid) * 0.3, 0.5));
+      const mMid = r1(isNum(H.m[1]) ? H.m[1] : 10), fMid = r1(isNum(H.f[1]) ? H.f[1] : mMid);
+      const mSp = Math.max(2, Math.round(Math.abs(mMid) * 0.1)), fSp = Math.max(2, Math.round(Math.abs(fMid) * 0.1));
       const basePe = isNum(s.fwdPe) && s.fwdPe > 0 ? s.fwdPe : (isNum(s.pe) && s.pe > 0 ? s.pe : 20);
-      const { g, seeded } = seedGrowth(s);
-      return { price: s.price, eps, note, years: 5, g, hint: seeded ? 'Starting point = consensus next-year EPS growth. Growth usually fades over a long horizon, so consider lowering it.' : 'No consensus growth available; default is 10%.',
-        bear: clamp(Math.round(basePe * 0.75 * 2) / 2, 5, 150), base: clamp(Math.round(basePe * 2) / 2, 5, 200), bull: clamp(Math.round(basePe * 1.25 * 2) / 2, 5, 250), disc: 10 };
+      const pe = [clamp(roundTo(basePe * 0.75, 0.5), 5, 150), clamp(roundTo(basePe, 0.5), 5, 200), clamp(roundTo(basePe * 1.25, 0.5), 5, 250)];
+      const notes = [];
+      if (!isNum(H.rev0)) notes.push('No annual revenue is saved for this stock yet, so the analysis cannot run.');
+      if (mMid <= 0) notes.push('The recent net profit margin is zero or negative, so the profit-margin method cannot give a price yet. Raise the profit margin assumptions to model this stock.');
+      if (fMid <= 0) notes.push('The recent free cash flow margin is zero or negative, so the cash-flow method cannot give a price yet. Raise the free cash flow margin assumptions to model it.');
+      return {
+        years: 5, mode: 3, analyzed: false, open: { pm: false, cf: false, info: false }, notes,
+        g: [gMid - gSp, gMid, gMid + gSp], m: [mMid - mSp, mMid, mMid + mSp], f: [fMid - fSp, fMid, fMid + fSp],
+        pe, pf: pe.slice(), r: [10, 10, 10],
+        hint: seeded ? 'Base growth starts at the consensus next-year revenue growth (capped at 40%); it usually fades over a long horizon, so consider lowering it.' : 'No consensus growth available; Base growth starts at the historical rate.'
+      };
     }
+
+    // One case (0 = Low, 1 = Mid, 2 = High). Future revenue x margin x multiple, per share, then discounted back.
+    function runModel(s, v, i) {
+      const H = histStats(s), n = v.years;
+      const shares = isNum(s.marketCap) && isNum(s.price) && s.price > 0 ? s.marketCap / s.price : null;
+      if (!isNum(H.rev0) || !shares) return null;
+      const rev = H.rev0 * Math.pow(Math.max(0.01, 1 + v.g[i] / 100), n);
+      const method = (margin, mult) => {
+        const income = rev * margin / 100;
+        if (!(income > 0) || !(mult > 0)) return null;
+        const fut = income * mult / shares;
+        return { income, mult, fut, fair: fut / Math.pow(1 + v.r[i] / 100, n), ret: (Math.pow(fut / s.price, 1 / n) - 1) * 100 };
+      };
+      return { rev, pm: method(v.m[i], v.pe[i]), cf: method(v.f[i], v.pf[i]) };
+    }
+
     function tabForecast() {
-      const s = selected, v = forecastVals[s.ticker] || (forecastVals[s.ticker] = forecastDefaults(s));
+      const s = selected, v = forecastVals[s.ticker] || (forecastVals[s.ticker] = forecastDefaults(s)), H = histStats(s);
+      const ch = dayChange(s), dollar = isNum(ch) && isNum(s.price) ? s.price - s.price / (1 + ch / 100) : null;
+      const pct = (x) => isNum(x) ? x.toFixed(2) + '%' : '—';
+      const lohi = (i) => i === 1 ? '' : 'lohi';
+      const cells = (key) => [0, 1, 2].map(i => `<td class="${lohi(i)}"><input type="number" inputmode="decimal" step="any" id="an-${key}-${i}" aria-label="${AN_NAMES[i]} case" /></td>`).join('');
+      const blanks = [0, 1, 2].map(i => `<td class="${lohi(i)}"></td>`).join('');
+      const hist = (a) => `<td class="tnum">${pct(a[0])}</td><td class="tnum">${pct(a[1])}</td>`;
+      const pfNow = isNum(s.marketCap) && isNum(H.fcf0) && H.fcf0 > 0 ? s.marketCap / H.fcf0 : null;
+      const row = (label, sub, histHtml, key) => `<tr><td class="rowlab">${label}${sub ? `<small>${sub}</small>` : ''}</td>${histHtml}${key ? cells(key) : blanks}</tr>`;
+      const slider = (cls, label, id, min, max, step, extra = '', unit = '') => `<div class="${cls}"><div class="slab"><span>${label}</span><span class="valbox"><input type="number" inputmode="decimal" step="any" id="${id}-num" aria-label="${label}, type an exact value" /><em>${unit}</em></span></div><input type="range" ${extra ? `class="${extra}"` : ''} id="${id}" min="${min}" max="${max}" step="${step}" /></div>`;
       $('tab-content').innerHTML = `
-        <div class="panel" id="forecast-panel">
-          <div class="f2">
-            <div class="field"><label for="pe-current-price">Current price ($)</label><input type="number" step="0.01" min="0.01" id="pe-current-price" value="${v.price}" inputmode="decimal" /></div>
-            <div class="field"><label for="pe-current-eps">TTM EPS ($)</label><input type="number" step="0.01" min="0.01" id="pe-current-eps" value="${v.eps}" inputmode="decimal" /></div>
+        <div class="an" id="an-root" data-mode="${v.mode}">
+          <div class="anctl">
+            <div class="field"><label for="an-years">Years of Analysis</label><select class="sel" id="an-years">${Array.from({ length: 10 }, (_, k) => `<option value="${k + 1}">${k + 1}</option>`).join('')}</select></div>
+            <div class="field"><label for="an-mode">Number of Assumption Entries</label><select class="sel" id="an-mode"><option value="3">3 (Bear, Base and Bull)</option><option value="1">1 (Base only)</option></select></div>
+            <p class="remind">REMINDER: This does not factor in the balance sheet (debt or cash).</p>
           </div>
-          ${v.note ? `<p class="note">${esc(v.note)}</p>` : ''}
-          <div class="f2">
-            <div class="minibox"><span>Current P/E (TTM)</span><b class="tnum" id="pe-current-ratio-badge">—</b></div>
-            <div class="minibox"><span>Forward P/E</span><b class="tnum" style="color:var(--br)">${fmtX(s.fwdPe)}</b></div>
+          ${v.notes.map(n => `<p class="note">${esc(n)}</p>`).join('')}
+          <div class="boxed scroll"><table class="tbl atbl">
+            <thead>
+              <tr class="grp"><th></th><th colspan="2"><span>Historical</span></th><th colspan="3" id="an-assump-head"><span>My Assumptions</span></th></tr>
+              <tr><th></th><th>1 Year</th><th title="Average or growth rate over up to the last 3 saved fiscal years">3 Years</th><th class="lohi">Bear</th><th>Base</th><th class="lohi">Bull</th></tr>
+            </thead>
+            <tbody>
+              ${row('Rev. Growth %', '', hist(H.g), 'g')}
+              ${row('Profit Margin %', '', hist(H.m), 'm')}
+              ${row('Free Cash Flow Margin %', '', hist(H.f), 'f')}
+            </tbody></table></div>
+          <p class="hint">History comes from the fiscal years Yahoo provides (about 3-4), not 5 or 10. Profit margin is net income ÷ revenue. ${esc(v.hint)}</p>
+
+          <div class="panel" id="an-sliders">
+            <div><h3 class="sec">Valuation</h3><p class="hint">Where you expect the stock to trade in the final year, and the return you want. Drag a slider, or tap the green number to type an exact value.</p></div>
+            <div class="tiles3 tnum"><div class="minibox"><span>P/E (TTM)</span><b>${fmtX1(s.pe)}</b></div><div class="minibox"><span>Forward P/E</span><b>${fmtX1(s.fwdPe)}</b></div><div class="minibox"><span>P/FCF</span><b>${fmtX1(pfNow)}</b></div></div>
+            ${[0, 1, 2].map(i => slider(lohi(i), `${AN_NAMES[i]} case P/E`, `an-s-pe-${i}`, 5, [150, 200, 250][i], 0.5, ['bear', '', 'bull'][i], 'x')).join('')}
+            ${[0, 1, 2].map(i => slider(lohi(i), `${AN_NAMES[i]} case P/FCF`, `an-s-pf-${i}`, 5, [150, 200, 250][i], 0.5, ['bear', '', 'bull'][i], 'x')).join('')}
+            ${slider('', 'Desired annual return (all cases)', 'an-s-r', 1, 25, 0.5, '', '%')}
           </div>
-          <div><div class="slab"><span>Forecast horizon</span><span id="pe-horizon-val"></span></div><input type="range" id="pe-horizon" min="1" max="10" step="1" value="${v.years}" aria-label="Forecast horizon in years" /></div>
-          <div><div class="slab"><span>Expected EPS growth (per year)</span><span id="pe-eps-growth-val"></span></div><input type="range" id="pe-eps-growth" min="-5" max="45" step="0.5" value="${v.g}" aria-label="Expected EPS growth" /><p class="hint">${esc(v.hint)}</p></div>
-          <div><div class="slab"><span>Bear case exit P/E</span><span id="pe-bear-val"></span></div><input type="range" class="bear" id="pe-bear" min="5" max="150" step="0.5" value="${v.bear}" aria-label="Bear case P/E" /></div>
-          <div><div class="slab"><span>Base case exit P/E</span><span id="pe-base-val"></span></div><input type="range" id="pe-base" min="5" max="200" step="0.5" value="${v.base}" aria-label="Base case P/E" /></div>
-          <div><div class="slab"><span>Bull case exit P/E</span><span id="pe-bull-val"></span></div><input type="range" class="bull" id="pe-bull" min="5" max="250" step="0.5" value="${v.bull}" aria-label="Bull case P/E" /></div>
-          <div class="field"><label for="pe-discount-rate">Required return / discount rate (%)</label><input type="number" step="0.5" min="1" max="25" id="pe-discount-rate" value="${v.disc}" inputmode="decimal" /></div>
-        </div>
-        <div class="scens" id="pe-scenario-cards"></div>
-        <div class="card"><div class="ct"><span>Projected share price</span><span id="pe-implied-current" style="text-transform:none;letter-spacing:0"></span></div><div class="chartbox" style="height:240px;margin-top:8px"><canvas id="chart-pe-projection"></canvas></div></div>
-        <div class="card"><h3 class="sec">Valuation sensitivity (year <span id="matrix-year-label">5</span> price &amp; return)</h3><p class="hint" style="margin-bottom:8px">Rows: EPS growth per year. Columns: exit P/E. A what-if tool, not a prediction.</p>
-          <div class="boxed scroll"><table class="tbl fit sens" id="pe-sensitivity-table"></table></div></div>`;
-      renderPeForecast();
+
+          <div class="pricebar">
+            <div class="pbox"><span>Current price</span><b class="tnum">${fmtUSD(s.price)}</b>${isNum(ch) ? `<span class="${cls(ch)} tnum">${ch >= 0 ? '↑' : '↓'} ${dollar < 0 ? '-' : ''}$${Math.abs(dollar).toFixed(2)} (${fmtPct(ch, 2)})</span>` : ''}</div>
+            <button type="button" class="btn pri" id="an-run">Analyze</button>
+          </div>
+          <div id="an-results" class="stack"></div>
+        </div>`;
+      refreshAnalysis('');
     }
-    function renderPeForecast() {
-      if (!$('pe-current-price')) return;
-      const price = Math.max(0.01, parseFloat($('pe-current-price').value) || 100);
-      const eps = Math.max(0.01, parseFloat($('pe-current-eps').value) || 5);
-      const years = parseInt($('pe-horizon').value, 10) || 5;
-      const gPct = parseFloat($('pe-eps-growth').value) || 0, g = gPct / 100;
-      const bearPe = parseFloat($('pe-bear').value) || 15, basePe = parseFloat($('pe-base').value) || 22, bullPe = parseFloat($('pe-bull').value) || 30;
-      const discPct = parseFloat($('pe-discount-rate').value) || 10, disc = discPct / 100;
-      const keep = forecastVals[selected.ticker];
-      if (keep) Object.assign(keep, { price, eps, years, g: gPct, bear: bearPe, base: basePe, bull: bullPe, disc: discPct });
 
-      $('pe-horizon-val').textContent = `${years} year${years > 1 ? 's' : ''}`;
-      $('pe-eps-growth-val').textContent = `${gPct.toFixed(1)}%`;
-      $('pe-bear-val').textContent = `${bearPe.toFixed(1)}x`; $('pe-base-val').textContent = `${basePe.toFixed(1)}x`; $('pe-bull-val').textContent = `${bullPe.toFixed(1)}x`;
-      $('matrix-year-label').textContent = years;
-      const impliedPe = price / eps;
-      $('pe-implied-current').textContent = `Current P/E: ${impliedPe.toFixed(2)}x`;
-      $('pe-current-ratio-badge').textContent = `${impliedPe.toFixed(2)}x`;
+    // Push the saved values into the table and sliders (skipping whatever the person is touching), then redraw results.
+    function refreshAnalysis(sourceId) {
+      const v = forecastVals[selected.ticker];
+      if (!v || !$('an-root')) return;
+      const setIf = (id, val) => { const el = $(id); if (el && el.id !== sourceId && document.activeElement !== el) el.value = val; };
+      $('an-root').dataset.mode = v.mode;
+      $('an-assump-head').colSpan = v.mode === 1 ? 1 : 3;
+      ['g', 'm', 'f'].forEach(k => [0, 1, 2].forEach(i => setIf(`an-${k}-${i}`, numText(v[k][i]))));
+      setIf('an-years', String(v.years)); setIf('an-mode', String(v.mode));
+      ['pe', 'pf'].forEach(k => [0, 1, 2].forEach(i => { setIf(`an-s-${k}-${i}`, v[k][i]); setIf(`an-s-${k}-${i}-num`, numText(v[k][i])); }));
+      setIf('an-s-r', v.r[1]); setIf('an-s-r-num', numText(v.r[1]));
+      renderResults();
+    }
 
-      const calc = (targetPe) => { const fEps = eps * Math.pow(1 + g, years), fPrice = fEps * targetPe; return { fPrice, cagr: (Math.pow(fPrice / price, 1 / years) - 1) * 100, pv: fPrice / Math.pow(1 + disc, years) }; };
-      $('pe-scenario-cards').innerHTML = [['bear', 'Bear case', bearPe], ['base', 'Base case', basePe], ['bull', 'Bull case', bullPe]].map(([k, title, pe]) => {
-        const r = calc(pe);
-        return `<div class="scen ${k}"><h5>${title} (${pe.toFixed(1)}x)</h5><strong class="tnum">${fmtUSD(r.fPrice)}</strong>
-          <p class="tnum">Annual return: <b class="${cls(r.cagr)}">${arrow(r.cagr)} ${fmtPct(r.cagr, 1)}</b></p><p class="tnum">Worth today (${discPct.toFixed(0)}% discount): ${fmtUSD(r.pv)}</p></div>`;
-      }).join('');
+    function onAnalysisInput(e) {
+      const v = forecastVals[selected.ticker], id = e.target.id, val = parseFloat(e.target.value);
+      if (!v) return;
+      let m;
+      if (id === 'an-years') v.years = parseInt(e.target.value, 10) || 5;
+      else if (id === 'an-mode') v.mode = parseInt(e.target.value, 10) === 1 ? 1 : 3;
+      else if (id === 'an-s-r' || id === 'an-s-r-num') { if (!isNum(val)) return; v.r = [val, val, val]; }
+      else if ((m = /^an-s-(pe|pf)-([012])(?:-num)?$/.exec(id))) { if (!isNum(val)) return; v[m[1]][+m[2]] = val; }
+      else if ((m = /^an-(g|m|f)-([012])$/.exec(id))) { if (!isNum(val)) return; v[m[1]][+m[2]] = val; }   // ignore empty or half-typed numbers
+      else return;
+      refreshAnalysis(id);
+    }
 
-      const labels = Array.from({ length: years + 1 }, (_, t) => `Yr ${t}`);
-      const seriesFor = (targetPe) => labels.map((_, t) => +(eps * Math.pow(1 + g, t) * (impliedPe + (targetPe - impliedPe) * (t / years))).toFixed(2));
+    function renderResults() {
+      const box = $('an-results'), s = selected, v = forecastVals[s.ticker];
       killChart('proj');
-      charts.proj = new Chart($('chart-pe-projection'), {
-        type: 'line',
-        data: { labels, datasets: [
-          { label: `Bull (${bullPe}x)`, data: seriesFor(bullPe), borderColor: C.lime, backgroundColor: C.lime, borderWidth: 2, pointRadius: 3, tension: 0.25 },
-          { label: `Base (${basePe}x)`, data: seriesFor(basePe), borderColor: C.primary, backgroundColor: C.primary, borderWidth: 2.5, pointRadius: 3, tension: 0.25 },
-          { label: `Bear (${bearPe}x)`, data: seriesFor(bearPe), borderColor: C.orange, backgroundColor: C.orange, borderWidth: 2, pointRadius: 3, tension: 0.25 }] },
-        options: baseOptions({
-          plugins: { legend: { position: 'top', align: 'end', labels: { boxWidth: 12, font: { size: 11 } } }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtUSD(ctx.raw)}` } } },
-          scales: { x: { grid: { display: false }, border: { color: C.axis } }, y: { grid: { color: C.grid }, border: { display: false }, ticks: { callback: v => '$' + v } } }
-        })
-      });
+      if (!v.analyzed) { box.innerHTML = '<p class="hint" style="text-align:center;padding:6px 0">Set your assumptions, then press Analyze.</p>'; return; }
+      const H = histStats(s), n = v.years, res = [0, 1, 2].map(i => runModel(s, v, i));
+      if (!res[1]) { box.innerHTML = '<div class="empty"><b>Not enough data to analyze</b>This needs annual revenue and a market cap, which are not saved for this stock yet.</div>'; return; }
+      const cols = v.mode === 1 ? [1] : [0, 1, 2];
+      const fairCell = (r, k) => r[k] ? `<b class="tnum ${r[k].fair >= s.price ? 'up' : 'dn'}">${fmtUSD(r[k].fair)}</b>` : '<span class="mu" title="Needs a positive margin and multiple">n/m</span>';
+      const plus = (k) => `<button type="button" class="plus" data-ex="${k}" aria-expanded="${v.open[k]}" aria-label="Show the working">${v.open[k] ? '−' : '+'}</button>`;
+      const avgRet = (r) => mean([r.pm?.ret, r.cf?.ret]);
+      const detail = (k, r) => !r[k] ? '<span class="mu">Not meaningful with these inputs.</span>' : `<div>Revenue in ${n} yr: ${fmtBig(r.rev)}</div><div>${k === 'pm' ? 'Net income' : 'Free cash flow'}: ${fmtBig(r[k].income)}</div><div>× ${r[k].mult.toFixed(1)}x = ${fmtBig(r[k].income * r[k].mult)}</div><div>Share price then: <b>${fmtUSD(r[k].fut)}</b></div><div>Return/yr: <b class="${cls(r[k].ret)}">${r[k].ret.toFixed(2)}%</b></div>`;
+      const retCell = (r, i) => { const a = avgRet(r); return isNum(a) ? `<b class="tnum ${a >= v.r[i] ? 'up' : 'dn'}">${a.toFixed(2)}%</b>` : '<span class="mu">n/m</span>'; };
+      const span = cols.length + 1;
+      box.innerHTML = `
+        <div class="boxed scroll"><table class="tbl atbl res">
+          <thead><tr class="grp"><th></th><th colspan="${cols.length}"><span>My Assumptions</span></th></tr><tr><th></th>${cols.map(i => `<th>${AN_NAMES[i]}</th>`).join('')}</tr></thead>
+          <tbody>
+            <tr><td class="rowlab">Multiple of Profit Margin</td>${cols.map(i => `<td>${fairCell(res[i], 'pm')} ${plus('pm')}</td>`).join('')}</tr>
+            <tr class="det" ${v.open.pm ? '' : 'hidden'}><td class="rowlab">The working</td>${cols.map(i => `<td>${detail('pm', res[i])}</td>`).join('')}</tr>
+            <tr><td class="rowlab">Multiple of Cash Flow</td>${cols.map(i => `<td>${fairCell(res[i], 'cf')} ${plus('cf')}</td>`).join('')}</tr>
+            <tr class="det" ${v.open.cf ? '' : 'hidden'}><td class="rowlab">The working</td>${cols.map(i => `<td>${detail('cf', res[i])}</td>`).join('')}</tr>
+            <tr><td class="rowlab">Current Price Return <button type="button" class="plus info" data-ex="info" aria-expanded="${v.open.info}" aria-label="What is this?">i</button></td>${cols.map(i => `<td>${retCell(res[i], i)}</td>`).join('')}</tr>
+            <tr class="det" ${v.open.info ? '' : 'hidden'}><td colspan="${span}" style="text-align:left;white-space:normal">Yearly return you would earn buying at today's ${fmtUSD(s.price)} if the stock reaches the price each method projects in ${n} year${n > 1 ? 's' : ''} (average of the methods that give a price). Green means it beats your desired return.</td></tr>
+          </tbody></table></div>
+        <p class="hint">The first two rows show the most you could pay <b>today</b> and still earn your desired return. Green = above today's price, red = below. Starting revenue is ${H.fy ? 'FY' + esc(H.fy) : 'the last fiscal year'} (${fmtBig(H.rev0)}); shares = market cap ÷ price. Ignores debt, cash, dilution and dividends. A what-if tool, not a prediction.</p>
+        <div class="card"><div class="ct"><span>Projected share price (profit-margin method)</span></div><div class="chartbox" style="height:240px;margin-top:8px"><canvas id="chart-pe-projection"></canvas></div></div>
+        <div class="card"><h3 class="sec">Sensitivity (year ${n} price &amp; total return)</h3><p class="hint" style="margin-bottom:8px">Base margin. Rows: revenue growth per year. Columns: exit P/E.</p>
+          <div class="boxed scroll"><table class="tbl fit sens" id="an-sensitivity"></table></div></div>`;
 
-      const gSteps = [-0.05, -0.025, 0, 0.025, 0.05].map(d => g + d);
-      const peSteps = [-6, -3, 0, 3, 6].map(d => Math.max(5, basePe + d));
-      $('pe-sensitivity-table').innerHTML = `
+      // projected price path: steady compounding from today's price to each case's end price
+      const labels = Array.from({ length: n + 1 }, (_, t) => `Yr ${t}`);
+      const path = (end) => labels.map((_, t) => +(s.price * Math.pow(end / s.price, t / n)).toFixed(2));
+      const colors = [C.orange, C.primary, C.lime];
+      const sets = cols.filter(i => res[i] && res[i].pm).map(i => ({ label: `${AN_NAMES[i]} (${v.pe[i]}x)`, data: path(res[i].pm.fut), borderColor: colors[i], backgroundColor: colors[i], borderWidth: i === 1 ? 2.5 : 2, pointRadius: 3, tension: 0.25 }));
+      if (sets.length) {
+        charts.proj = new Chart($('chart-pe-projection'), {
+          type: 'line', data: { labels, datasets: sets.reverse() },
+          options: baseOptions({
+            plugins: { legend: { position: 'top', align: 'end', labels: { boxWidth: 12, font: { size: 11 } } }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtUSD(ctx.raw)}` } } },
+            scales: { x: { grid: { display: false }, border: { color: C.axis } }, y: { grid: { color: C.grid }, border: { display: false }, ticks: { callback: val => '$' + val } } }
+          })
+        });
+      } else { $('chart-pe-projection').closest('.card').innerHTML = '<div class="ct">Projected share price</div><span class="sub">Needs a positive profit margin to draw.</span>'; }
+
+      const shares = s.marketCap / s.price, g0 = v.g[1] / 100, pe0 = v.pe[1];
+      const gSteps = [-0.05, -0.025, 0, 0.025, 0.05].map(d => g0 + d), peSteps = [-6, -3, 0, 3, 6].map(d => Math.max(5, pe0 + d));
+      $('an-sensitivity').innerHTML = `
         <thead><tr><th>Growth ↓<br>P/E →</th>${peSteps.map(pe => `<th>${pe.toFixed(0)}x</th>`).join('')}</tr></thead>
         <tbody>${gSteps.map(gr => `<tr><td class="rowlab tnum">${(gr * 100).toFixed(1)}%</td>${peSteps.map(pe => {
-          const p = eps * Math.pow(1 + gr, years) * pe, ret = (p - price) / price * 100;
-          const center = Math.abs(gr - g) < 0.0001 && Math.abs(pe - basePe) < 0.01;
+          const income = H.rev0 * Math.pow(Math.max(0.01, 1 + gr), n) * v.m[1] / 100;
+          if (!(income > 0)) return '<td class="tnum mu">n/m</td>';
+          const p = income * pe / shares, ret = (p - s.price) / s.price * 100;
+          const center = Math.abs(gr - g0) < 0.0001 && Math.abs(pe - pe0) < 0.01;
           return `<td class="tnum ${center ? 'center' : ret >= 30 ? 'good' : ret < 0 ? 'bad' : ''}">${p >= 100 ? '$' + Math.round(p).toLocaleString('en-US') : fmtUSD(p)}<small class="${cls(ret)}">${arrow(ret)} ${Math.abs(ret).toFixed(0)}%</small></td>`;
         }).join('')}</tr>`).join('')}</tbody>`;
     }
@@ -979,6 +1112,9 @@
     $('view-stock').addEventListener('click', (e) => {
       const tab = e.target.closest('#tab-bar a[data-tab]');
       if (tab) { e.preventDefault(); setTab(tab.dataset.tab); return; }
+      if (e.target.closest('#an-run')) { const v = forecastVals[selected.ticker]; const first = !v.analyzed; v.analyzed = true; renderResults(); if (first) $('an-results').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+      const ex = e.target.closest('[data-ex]');
+      if (ex) { const v = forecastVals[selected.ticker]; v.open[ex.dataset.ex] = !v.open[ex.dataset.ex]; renderResults(); return; }
       const rng = e.target.closest('[data-range]');
       if (rng) { priceRange = rng.dataset.range; renderPriceBlock(); return; }
       const menuBtn = e.target.closest('#btn-menu');
@@ -986,7 +1122,7 @@
       const rm = e.target.closest('[data-remove-ticker]');
       if (rm) onRemoveClick(rm.dataset.removeTicker);
     });
-    $('view-stock').addEventListener('input', (e) => { if (e.target.id && e.target.id.startsWith('pe-')) renderPeForecast(); });
+    $('view-stock').addEventListener('input', (e) => { if (e.target.id && e.target.id.startsWith('an-')) onAnalysisInput(e); });
     document.addEventListener('click', (e) => {
       const m = $('menu'); if (m && !m.hidden && !e.target.closest('#menu, #btn-menu')) m.hidden = true;
       const rm = e.target.closest('#pending-banner [data-remove-ticker]'); if (rm) onRemoveClick(rm.dataset.removeTicker);

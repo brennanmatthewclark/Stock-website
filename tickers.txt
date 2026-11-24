@@ -1,6 +1,5 @@
 # One ticker per line (Yahoo Finance symbols, e.g. BRK-B). Lines starting with # are ignored.
 # Edit this file on GitHub (web editor works on a phone) and the next daily run picks it up.
-AAPL
 MSFT
 NVDA
 AMZN

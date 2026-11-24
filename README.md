@@ -1,4 +1,4 @@
-# Personal Stock Dashboard
+# Saturn Stocks (personal stock dashboard)
 
 A static website (index.html) fed by a daily Python job (fetch_data.py) that pulls data from Yahoo Finance via `yfinance`.
 Hosted free on GitHub Pages and refreshed by a GitHub Actions workflow on weekdays after the US market closes.
@@ -16,3 +16,5 @@ Run on your own computer:
 Notes: yfinance is unofficial; Yahoo may change fields or block requests (the page then shows "-" or keeps the last good data
 marked "stale"). Data is delayed and for personal research only, not investment advice. The P/E history is one snapshot per day,
 saved in data/pe_history.json, so the history chart fills in over time.
+
+Install on a phone: open the site in Chrome, open the menu, tap "Add to Home screen" (or "Install app").

@@ -690,7 +690,7 @@
     }
 
     // ============================ stock page ============================
-    const TABS = [['overview', 'Overview'], ['forecast', 'Analysis'], ['financials', 'Financials'], ['estimates', 'Estimates'], ['analysts', 'Analysts'], ['news', 'News'], ['history', 'P/E History']];
+    const TABS = [['overview', 'Overview'], ['simple', 'Simple Analysis'], ['forecast', 'Analysis'], ['financials', 'Financials'], ['estimates', 'Estimates'], ['analysts', 'Analysts'], ['news', 'News'], ['history', 'P/E History']];
     const PRICE_RANGES = { '1M': 21, '3M': 63, '6M': 126, '1Y': 400 };
 
     function renderStock(ticker, tab) {
@@ -735,7 +735,7 @@
 
     function renderTab() {
       ['hist', 'fin', 'proj'].forEach(killChart);
-      ({ overview: tabOverview, forecast: tabForecast, financials: tabFinancials, estimates: tabEstimates, analysts: tabAnalysts, news: tabNews, history: tabHistory })[currentTab]();
+      ({ overview: tabOverview, simple: tabSimple, forecast: tabForecast, financials: tabFinancials, estimates: tabEstimates, analysts: tabAnalysts, news: tabNews, history: tabHistory })[currentTab]();
     }
 
     // ---- price chart (always visible at the top of a stock page)
@@ -822,6 +822,103 @@
         n, fy: last ? last.year : null, rev0: last ? last.revenue : null, fcf0: last && isNum(last.fcf) ? last.fcf : null,
         g: [cagr(1), cagr(3)], m: [ratio('netIncome', 1), ratio('netIncome', 3)], f: [ratio('fcf', 1), ratio('fcf', 3)]
       };
+    }
+
+    // ---- Simple analysis tab (the original P/E forecast: EPS growth x exit P/E, for beginners)
+    const simpleVals = {};
+    function seedSimpleGrowth(s) {
+      const e = (s.estimates?.earnings || []).find(r => r.period === '+1y');
+      if (e && isNum(e.growth)) return { g: clamp(Math.round(e.growth * 100 * 2) / 2, -5, 45), seeded: true };
+      return { g: 10, seeded: false };
+    }
+    function simpleDefaults(s) {
+      let eps, note = '';
+      if (isNum(s.trailingEps) && s.trailingEps > 0) eps = s.trailingEps;
+      else if (isNum(s.pe) && s.pe > 0) eps = +(s.price / s.pe).toFixed(2);
+      else if (isNum(s.forwardEps) && s.forwardEps > 0) { eps = s.forwardEps; note = 'No positive trailing EPS (the company is not profitable on a trailing basis), so forward EPS is used as the starting point.'; }
+      else { eps = 1; note = 'No positive EPS available. Enter your own EPS to model this stock; the number shown is a placeholder.'; }
+      const basePe = isNum(s.fwdPe) && s.fwdPe > 0 ? s.fwdPe : (isNum(s.pe) && s.pe > 0 ? s.pe : 20);
+      const { g, seeded } = seedSimpleGrowth(s);
+      return { price: s.price, eps, note, years: 5, g, hint: seeded ? 'Starting point = consensus next-year EPS growth. Growth usually fades over a long horizon, so consider lowering it.' : 'No consensus growth available; default is 10%.',
+        bear: clamp(Math.round(basePe * 0.75 * 2) / 2, 5, 150), base: clamp(Math.round(basePe * 2) / 2, 5, 200), bull: clamp(Math.round(basePe * 1.25 * 2) / 2, 5, 250), disc: 10 };
+    }
+    function tabSimple() {
+      const s = selected, v = simpleVals[s.ticker] || (simpleVals[s.ticker] = simpleDefaults(s));
+      $('tab-content').innerHTML = `
+        <p class="hint" style="margin:0 0 12px">New to this? We take the company's earnings per share (EPS) and grow it by the rate you choose each year. Then we multiply by the P/E (the dollars investors pay for each $1 of earnings) you expect at the end. That gives a possible future share price for a bear, base and bull case.</p>
+        <div class="panel" id="simple-panel">
+          <div class="f2">
+            <div class="field"><label for="pe-current-price">Current price ($)</label><input type="number" step="0.01" min="0.01" id="pe-current-price" value="${v.price}" inputmode="decimal" /></div>
+            <div class="field"><label for="pe-current-eps">TTM EPS ($)</label><input type="number" step="0.01" min="0.01" id="pe-current-eps" value="${v.eps}" inputmode="decimal" /></div>
+          </div>
+          ${v.note ? `<p class="note">${esc(v.note)}</p>` : ''}
+          <div class="f2">
+            <div class="minibox"><span>Current P/E (TTM)</span><b class="tnum" id="pe-current-ratio-badge">—</b></div>
+            <div class="minibox"><span>Forward P/E</span><b class="tnum" style="color:var(--br)">${fmtX(s.fwdPe)}</b></div>
+          </div>
+          <div><div class="slab"><span>Forecast horizon</span><span id="pe-horizon-val"></span></div><input type="range" id="pe-horizon" min="1" max="10" step="1" value="${v.years}" aria-label="Forecast horizon in years" /></div>
+          <div><div class="slab"><span>Expected EPS growth (per year)</span><span id="pe-eps-growth-val"></span></div><input type="range" id="pe-eps-growth" min="-5" max="45" step="0.5" value="${v.g}" aria-label="Expected EPS growth" /><p class="hint">${esc(v.hint)}</p></div>
+          <div><div class="slab"><span>Bear case exit P/E</span><span id="pe-bear-val"></span></div><input type="range" class="bear" id="pe-bear" min="5" max="150" step="0.5" value="${v.bear}" aria-label="Bear case P/E" /></div>
+          <div><div class="slab"><span>Base case exit P/E</span><span id="pe-base-val"></span></div><input type="range" id="pe-base" min="5" max="200" step="0.5" value="${v.base}" aria-label="Base case P/E" /></div>
+          <div><div class="slab"><span>Bull case exit P/E</span><span id="pe-bull-val"></span></div><input type="range" class="bull" id="pe-bull" min="5" max="250" step="0.5" value="${v.bull}" aria-label="Bull case P/E" /></div>
+          <div class="field"><label for="pe-discount-rate">Required return / discount rate (%)</label><input type="number" step="0.5" min="1" max="25" id="pe-discount-rate" value="${v.disc}" inputmode="decimal" /></div>
+        </div>
+        <div class="scens" id="pe-scenario-cards"></div>
+        <div class="card"><div class="ct"><span>Projected share price</span><span id="pe-implied-current" style="text-transform:none;letter-spacing:0"></span></div><div class="chartbox" style="height:240px;margin-top:8px"><canvas id="chart-simple-projection"></canvas></div></div>
+        <div class="card"><h3 class="sec">Valuation sensitivity (year <span id="matrix-year-label">5</span> price &amp; return)</h3><p class="hint" style="margin-bottom:8px">Rows: EPS growth per year. Columns: exit P/E. A what-if tool, not a prediction.</p>
+          <div class="boxed scroll"><table class="tbl fit sens" id="pe-sensitivity-table"></table></div></div>`;
+      renderSimple();
+    }
+    function renderSimple() {
+      if (!$('pe-current-price')) return;
+      const price = Math.max(0.01, parseFloat($('pe-current-price').value) || 100);
+      const eps = Math.max(0.01, parseFloat($('pe-current-eps').value) || 5);
+      const years = parseInt($('pe-horizon').value, 10) || 5;
+      const gPct = parseFloat($('pe-eps-growth').value) || 0, g = gPct / 100;
+      const bearPe = parseFloat($('pe-bear').value) || 15, basePe = parseFloat($('pe-base').value) || 22, bullPe = parseFloat($('pe-bull').value) || 30;
+      const discPct = parseFloat($('pe-discount-rate').value) || 10, disc = discPct / 100;
+      const keep = simpleVals[selected.ticker];
+      if (keep) Object.assign(keep, { price, eps, years, g: gPct, bear: bearPe, base: basePe, bull: bullPe, disc: discPct });
+
+      $('pe-horizon-val').textContent = `${years} year${years > 1 ? 's' : ''}`;
+      $('pe-eps-growth-val').textContent = `${gPct.toFixed(1)}%`;
+      $('pe-bear-val').textContent = `${bearPe.toFixed(1)}x`; $('pe-base-val').textContent = `${basePe.toFixed(1)}x`; $('pe-bull-val').textContent = `${bullPe.toFixed(1)}x`;
+      $('matrix-year-label').textContent = years;
+      const impliedPe = price / eps;
+      $('pe-implied-current').textContent = `Current P/E: ${impliedPe.toFixed(2)}x`;
+      $('pe-current-ratio-badge').textContent = `${impliedPe.toFixed(2)}x`;
+
+      const calc = (targetPe) => { const fEps = eps * Math.pow(1 + g, years), fPrice = fEps * targetPe; return { fPrice, cagr: (Math.pow(fPrice / price, 1 / years) - 1) * 100, pv: fPrice / Math.pow(1 + disc, years) }; };
+      $('pe-scenario-cards').innerHTML = [['bear', 'Bear case', bearPe], ['base', 'Base case', basePe], ['bull', 'Bull case', bullPe]].map(([k, title, pe]) => {
+        const r = calc(pe);
+        return `<div class="scen ${k}"><h5>${title} (${pe.toFixed(1)}x)</h5><strong class="tnum">${fmtUSD(r.fPrice)}</strong>
+          <p class="tnum">Annual return: <b class="${cls(r.cagr)}">${arrow(r.cagr)} ${fmtPct(r.cagr, 1)}</b></p><p class="tnum">Worth today (${discPct.toFixed(0)}% discount): ${fmtUSD(r.pv)}</p></div>`;
+      }).join('');
+
+      const labels = Array.from({ length: years + 1 }, (_, t) => `Yr ${t}`);
+      const seriesFor = (targetPe) => labels.map((_, t) => +(eps * Math.pow(1 + g, t) * (impliedPe + (targetPe - impliedPe) * (t / years))).toFixed(2));
+      killChart('simple');
+      charts.simple = new Chart($('chart-simple-projection'), {
+        type: 'line',
+        data: { labels, datasets: [
+          { label: `Bull (${bullPe}x)`, data: seriesFor(bullPe), borderColor: C.lime, backgroundColor: C.lime, borderWidth: 2, pointRadius: 3, tension: 0.25 },
+          { label: `Base (${basePe}x)`, data: seriesFor(basePe), borderColor: C.primary, backgroundColor: C.primary, borderWidth: 2.5, pointRadius: 3, tension: 0.25 },
+          { label: `Bear (${bearPe}x)`, data: seriesFor(bearPe), borderColor: C.orange, backgroundColor: C.orange, borderWidth: 2, pointRadius: 3, tension: 0.25 }] },
+        options: baseOptions({
+          plugins: { legend: { position: 'top', align: 'end', labels: { boxWidth: 12, font: { size: 11 } } }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtUSD(ctx.raw)}` } } },
+          scales: { x: { grid: { display: false }, border: { color: C.axis } }, y: { grid: { color: C.grid }, border: { display: false }, ticks: { callback: v => '$' + v } } }
+        })
+      });
+
+      const gSteps = [-0.05, -0.025, 0, 0.025, 0.05].map(d => g + d);
+      const peSteps = [-6, -3, 0, 3, 6].map(d => Math.max(5, basePe + d));
+      $('pe-sensitivity-table').innerHTML = `
+        <thead><tr><th>Growth ↓<br>P/E →</th>${peSteps.map(pe => `<th>${pe.toFixed(0)}x</th>`).join('')}</tr></thead>
+        <tbody>${gSteps.map(gr => `<tr><td class="rowlab tnum">${(gr * 100).toFixed(1)}%</td>${peSteps.map(pe => {
+          const p = eps * Math.pow(1 + gr, years) * pe, ret = (p - price) / price * 100;
+          const center = Math.abs(gr - g) < 0.0001 && Math.abs(pe - basePe) < 0.01;
+          return `<td class="tnum ${center ? 'center' : ret >= 30 ? 'good' : ret < 0 ? 'bad' : ''}">${p >= 100 ? '$' + Math.round(p).toLocaleString('en-US') : fmtUSD(p)}<small class="${cls(ret)}">${arrow(ret)} ${Math.abs(ret).toFixed(0)}%</small></td>`;
+        }).join('')}</tr>`).join('')}</tbody>`;
     }
 
     function forecastDefaults(s) {
@@ -1210,6 +1307,7 @@
       if (rm) onRemoveClick(rm.dataset.removeTicker);
     });
     $('view-stock').addEventListener('input', (e) => { if (e.target.id && e.target.id.startsWith('an-')) onAnalysisInput(e); });
+    $('view-stock').addEventListener('input', (e) => { if (e.target.id && e.target.id.startsWith('pe-')) renderSimple(); });
     document.addEventListener('click', (e) => {
       const m = $('menu'); if (m && !m.hidden && !e.target.closest('#menu, #btn-menu')) m.hidden = true;
       const rm = e.target.closest('#pending-banner [data-remove-ticker]'); if (rm) onRemoveClick(rm.dataset.removeTicker);

@@ -1007,13 +1007,13 @@
       const slider = (cls, label, id, min, max, step, extra = '', unit = '') => `<div class="${cls}"><div class="slab"><span>${label}</span><span class="valbox"><input type="number" inputmode="decimal" step="any" id="${id}-num" aria-label="${label}, type an exact value" /><em>${unit}</em></span></div><input type="range" ${extra ? `class="${extra}"` : ''} id="${id}" min="${min}" max="${max}" step="${step}" /></div>`;
       $('tab-content').innerHTML = `
         <div class="an" id="an-root" data-mode="${v.mode}">
-          <div class="card qs"><div class="ct">Quick start</div>
+          <div class="card qs"><div class="ct"><span>Quick start ${tipBtn('tip-an-presets')}</span></div>${tipBox('tip-an-presets', 'Presets fill in all the assumptions below at once, from cautious to optimistic. You can pick one and then change any number you like.')}
             <div class="seg3" role="group" aria-label="Quick start presets">${Object.keys(PRESETS).map(k => `<button type="button" data-preset="${k}">${PRESETS[k].name}</button>`).join('')}</div>
             <p class="hint" id="an-preset-text"></p></div>
           <div id="an-inputs">
           <div class="anctl">
-            <div class="field"><label for="an-years">Years of Analysis</label><select class="sel" id="an-years">${Array.from({ length: 10 }, (_, k) => `<option value="${k + 1}">${k + 1}</option>`).join('')}</select></div>
-            <div class="field"><label for="an-mode">Number of Assumption Entries</label><select class="sel" id="an-mode"><option value="3">3 (Bear, Base and Bull)</option><option value="1">1 (Base only)</option></select></div>
+            <div class="field"><label for="an-years">Years of Analysis ${tipBtn('tip-an-years')}</label>${tipBox('tip-an-years', 'How many years ahead to project the company. Longer is less certain.')}<select class="sel" id="an-years">${Array.from({ length: 10 }, (_, k) => `<option value="${k + 1}">${k + 1}</option>`).join('')}</select></div>
+            <div class="field"><label for="an-mode">Number of Assumption Entries ${tipBtn('tip-an-mode')}</label>${tipBox('tip-an-mode', 'Choose 3 to compare a Bear (pessimistic), Base (middle) and Bull (optimistic) case side by side. Choose 1 to test only your Base case.')}<select class="sel" id="an-mode"><option value="3">3 (Bear, Base and Bull)</option><option value="1">1 (Base only)</option></select></div>
             <p class="remind">REMINDER: This does not factor in the balance sheet (debt or cash).</p>
           </div>
           ${v.notes.map(n => `<p class="note">${esc(n)}</p>`).join('')}
@@ -1027,10 +1027,11 @@
               ${row('Profit Margin %', '', hist(H.m), 'm')}
               ${row('Free Cash Flow Margin %', '', hist(H.f), 'f')}
             </tbody></table></div>
-          <p class="hint">History comes from the fiscal years Yahoo provides (about 3-4), not 5 or 10. Profit margin is net income ÷ revenue. ${esc(v.hint)}</p>
+          <p class="hint">Type your growth and margin assumptions in the Bear, Base and Bull columns. ${tipBtn('tip-an-table')}</p>
+          ${tipBox('tip-an-table', 'Revenue growth is how fast sales grow each year. Profit margin is net income ÷ revenue, the share of each sales dollar kept as profit. Free cash flow margin is the cash left after spending on the business, as a share of sales. History comes from the fiscal years Yahoo provides (about 3-4), not 5 or 10. ' + esc(v.hint))}
 
           <div class="panel" id="an-sliders">
-            <div><h3 class="sec">Valuation</h3><p class="hint">Where you expect the stock to trade in the final year, and the return you want. Drag a slider, or tap the green number to type an exact value.</p></div>
+            <div><h3 class="sec">Valuation ${tipBtn('tip-an-val')}</h3>${tipBox('tip-an-val', 'Where you expect the stock to trade in the final year, and the return you want. P/E is price divided by earnings. P/FCF is price divided by free cash flow, the cash the business generates. A higher number means investors pay more for each dollar. Drag a slider, or tap the green number to type an exact value.')}</div>
             <div class="tiles3 tnum"><div class="minibox"><span>P/E (TTM)</span><b>${fmtX1(s.pe)}</b></div><div class="minibox"><span>Forward P/E</span><b>${fmtX1(s.fwdPe)}</b></div><div class="minibox"><span>P/FCF</span><b>${fmtX1(pfNow)}</b></div></div>
             ${[0, 1, 2].map(i => slider(lohi(i), `${AN_NAMES[i]} case P/E`, `an-s-pe-${i}`, 5, [150, 200, 250][i], 0.5, ['bear', '', 'bull'][i], 'x')).join('')}
             ${[0, 1, 2].map(i => slider(lohi(i), `${AN_NAMES[i]} case P/FCF`, `an-s-pf-${i}`, 5, [150, 200, 250][i], 0.5, ['bear', '', 'bull'][i], 'x')).join('')}

@@ -107,6 +107,12 @@
     .sub b { color: var(--tx); }
     h3.sec { font-size: 15px; margin: 4px 0 2px; }
     p.hint { font-size: 12px; color: var(--mu); }
+    /* tap-to-open lightbulb tips */
+    .tipb { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-left: 4px; padding: 0; border: 1px solid var(--info-bd); border-radius: 50%; background: var(--info-bg); font-size: 13px; line-height: 1; cursor: pointer; vertical-align: middle; text-transform: none; letter-spacing: 0; -webkit-tap-highlight-color: transparent; }
+    .tipb[aria-expanded="true"] { background: var(--br-soft); border-color: var(--br); }
+    .tipb:focus-visible { outline: 2px solid var(--br); outline-offset: 2px; }
+    .tipbox { margin: 6px 0 0; padding: 9px 11px; border-radius: 10px; background: var(--info-bg); border: 1px solid var(--info-bd); color: var(--tx2); font-size: 12.5px; line-height: 1.45; text-transform: none; letter-spacing: 0; font-weight: 400; }
+    .tipbox[hidden] { display: none; }
     .chip { font-style: normal; font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 99px; display: inline-block; white-space: nowrap; background: var(--mute-bg); color: var(--mute-tx); }
     .chip.cheap, .chip.ok { background: var(--cheap-bg); color: var(--cheap-tx); }
     .chip.pricey, .chip.warn { background: var(--warn-bg); color: var(--warn-tx); }
@@ -824,6 +830,20 @@
       };
     }
 
+    // ---- Lightbulb tips: tipBtn(id) is the tappable bulb, tipBox(id, text) is the hidden explanation shown under it
+    const tipBtn = (id) => `<button type="button" class="tipb" data-tip="${id}" aria-expanded="false" aria-controls="${id}" aria-label="Show explanation">💡</button>`;
+    const tipBox = (id, html) => `<div class="tipbox" id="${id}" role="note" hidden>${html}</div>`;
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest && e.target.closest('.tipb');
+      if (b) {
+        e.preventDefault(); e.stopPropagation();
+        const box = document.getElementById(b.dataset.tip);
+        if (!box) return;
+        const open = box.hidden;
+        box.hidden = !open; b.setAttribute('aria-expanded', String(open));
+      }
+    });
+
     // ---- Simple analysis tab (the original P/E forecast: EPS growth x exit P/E, for beginners)
     const simpleVals = {};
     function seedSimpleGrowth(s) {
@@ -845,7 +865,9 @@
     function tabSimple() {
       const s = selected, v = simpleVals[s.ticker] || (simpleVals[s.ticker] = simpleDefaults(s));
       $('tab-content').innerHTML = `
-        <p class="hint" style="margin:0 0 12px">New to this? We take the company's earnings per share (EPS) and grow it by the rate you choose each year. Then we multiply by the P/E (the dollars investors pay for each $1 of earnings) you expect at the end. That gives a possible future share price for a bear, base and bull case.</p>
+        <p class="hint" style="margin:0 0 8px">Estimate a possible future share price for bear, base and bull cases. ${tipBtn('tip-how')}</p>
+        ${tipBox('tip-how', "New to this? We take the company's earnings per share (EPS) and grow it by the rate you choose each year. Then we multiply by the P/E (the dollars investors pay for each $1 of earnings) you expect at the end. That gives a possible future share price for a bear, base and bull case.")}
+
         <div class="panel" id="simple-panel">
           <div class="f2">
             <div class="field"><label for="pe-current-price">Current price ($)</label><input type="number" step="0.01" min="0.01" id="pe-current-price" value="${v.price}" inputmode="decimal" /></div>
@@ -856,16 +878,16 @@
             <div class="minibox"><span>Current P/E (TTM)</span><b class="tnum" id="pe-current-ratio-badge">—</b></div>
             <div class="minibox"><span>Forward P/E</span><b class="tnum" style="color:var(--br)">${fmtX(s.fwdPe)}</b></div>
           </div>
-          <div><div class="slab"><span>Forecast horizon</span><span id="pe-horizon-val"></span></div><input type="range" id="pe-horizon" min="1" max="10" step="1" value="${v.years}" aria-label="Forecast horizon in years" /></div>
-          <div><div class="slab"><span>Expected EPS growth (per year)</span><span id="pe-eps-growth-val"></span></div><input type="range" id="pe-eps-growth" min="-5" max="45" step="0.5" value="${v.g}" aria-label="Expected EPS growth" /><p class="hint">${esc(v.hint)}</p></div>
-          <div><div class="slab"><span>Bear case exit P/E</span><span id="pe-bear-val"></span></div><input type="range" class="bear" id="pe-bear" min="5" max="150" step="0.5" value="${v.bear}" aria-label="Bear case P/E" /></div>
+          <div><div class="slab"><span>Forecast horizon ${tipBtn('tip-horizon')}</span><span id="pe-horizon-val"></span></div>${tipBox('tip-horizon', 'How many years into the future to look. Longer horizons are less certain, so treat the results as a rough guide.')}<input type="range" id="pe-horizon" min="1" max="10" step="1" value="${v.years}" aria-label="Forecast horizon in years" /></div>
+          <div><div class="slab"><span>Expected EPS growth (per year) ${tipBtn('tip-growth')}</span><span id="pe-eps-growth-val"></span></div>${tipBox('tip-growth', 'How fast you expect the company\'s earnings per share to grow each year. ' + esc(v.hint))}<input type="range" id="pe-eps-growth" min="-5" max="45" step="0.5" value="${v.g}" aria-label="Expected EPS growth" /></div>
+          <div><div class="slab"><span>Bear case exit P/E ${tipBtn('tip-pe')}</span><span id="pe-bear-val"></span></div>${tipBox('tip-pe', 'The exit P/E is the P/E you think investors will pay at the end of the forecast. Bear is a pessimistic guess, base is a middle guess, and bull is an optimistic guess. A higher P/E means a higher future price.')}<input type="range" class="bear" id="pe-bear" min="5" max="150" step="0.5" value="${v.bear}" aria-label="Bear case P/E" /></div>
           <div><div class="slab"><span>Base case exit P/E</span><span id="pe-base-val"></span></div><input type="range" id="pe-base" min="5" max="200" step="0.5" value="${v.base}" aria-label="Base case P/E" /></div>
           <div><div class="slab"><span>Bull case exit P/E</span><span id="pe-bull-val"></span></div><input type="range" class="bull" id="pe-bull" min="5" max="250" step="0.5" value="${v.bull}" aria-label="Bull case P/E" /></div>
-          <div class="field"><label for="pe-discount-rate">Required return / discount rate (%)</label><input type="number" step="0.5" min="1" max="25" id="pe-discount-rate" value="${v.disc}" inputmode="decimal" /></div>
+          <div class="field"><label for="pe-discount-rate">Required return / discount rate (%) ${tipBtn('tip-disc')}</label>${tipBox('tip-disc', 'The yearly return you would want to earn to make this stock worth owning. We use it to show what a future price is worth in today\'s dollars. 10% is a common starting point.')}<input type="number" step="0.5" min="1" max="25" id="pe-discount-rate" value="${v.disc}" inputmode="decimal" /></div>
         </div>
         <div class="scens" id="pe-scenario-cards"></div>
         <div class="card"><div class="ct"><span>Projected share price</span><span id="pe-implied-current" style="text-transform:none;letter-spacing:0"></span></div><div class="chartbox" style="height:240px;margin-top:8px"><canvas id="chart-simple-projection"></canvas></div></div>
-        <div class="card"><h3 class="sec">Valuation sensitivity (year <span id="matrix-year-label">5</span> price &amp; return)</h3><p class="hint" style="margin-bottom:8px">Rows: EPS growth per year. Columns: exit P/E. A what-if tool, not a prediction.</p>
+        <div class="card"><h3 class="sec">Valuation sensitivity (year <span id="matrix-year-label">5</span> price &amp; return) ${tipBtn('tip-sens')}</h3>${tipBox('tip-sens', 'Rows: EPS growth per year. Columns: exit P/E. Each box shows the possible future price and the total change from today. A what-if tool, not a prediction.')}<div style="height:8px"></div>
           <div class="boxed scroll"><table class="tbl fit sens" id="pe-sensitivity-table"></table></div></div>`;
       renderSimple();
     }
